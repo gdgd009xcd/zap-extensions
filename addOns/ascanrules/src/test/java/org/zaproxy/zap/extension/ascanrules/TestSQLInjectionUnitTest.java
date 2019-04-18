@@ -47,15 +47,20 @@ public class TestSQLInjectionUnitTest extends ActiveScannerAppParamTest<TestSQLI
         int recommendMax = super.getRecommendMaxNumberMessagesPerParam(strength);
         switch (strength) {
         case LOW:
-            return recommendMax + 1;
+            recommendMax = recommendMax + 1;
+            break;
         case MEDIUM:
         default:
-            return recommendMax + 14;
+            recommendMax = recommendMax + 14;
+            break;
         case HIGH:
-            return recommendMax + 22;
+            recommendMax = recommendMax + 22 +1;//gdgd009xcd +1 added.
+            break;
         case INSANE:
-            return recommendMax + 5;
+            recommendMax = recommendMax + 5 +19;//gdgd009xcd + 19 added.
+            break;
         }
+        return recommendMax*2;//gdgd009xcd  multiplied by 2
     }
 
     @Override

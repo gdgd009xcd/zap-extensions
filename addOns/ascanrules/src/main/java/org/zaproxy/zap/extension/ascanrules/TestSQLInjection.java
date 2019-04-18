@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.MissingResourceException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -115,7 +116,17 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 	 * others might still get past
 	 */
 	private static final String[] SQL_CHECK_ERR = {"'", "\"", ";", ")", "(", "NULL", "'\""};
-
+	
+	//  percent difference value(max:1000 == 100.0 %) for comparing between original request and modified parameter request.
+	int refNealyEqualPercent = 0;//default:950 if compare(original, andTrue) >= refNealyEqualPercent then andTrue is nealy equal to original 
+	int refNealyDifferPercent = 0;//default:751  if compare(origial, andTrue) < refNealyDifferPercent then andTrue is different from orignal
+	int refNealyDifferPercentMin = 0;//default:880  1)if    compare(original, andTrue )>= refNealyEqualPercent
+	                                 //               && (compare(original, orTrue)  < refNealyDifferPercentMin and orgsize < orTruesize) then
+	                                 //               SQL injection found.
+	// 2) if compare(original, andTrue )>= refNealyEqualPercent
+	//     && compare(andTrue, andFalse) < refNealyDifferPercentMin && compare(orTrue, orFalse) < refNealyDifferPercentMin
+	//      && compare(andFalse, orFalse) >= refNealyEqualPercent
+	//       Then SQL injection found.
 	/**
 	 * A collection of RDBMS with its error message fragments and {@code Tech}.
 	 * <p>
@@ -275,6 +286,8 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 		private final Tech tech;
 		private final List<Pattern> errorPatterns;
 		private final List<Pattern> unionErrorPatterns;
+		
+		
 
 		private RDBMS(String name, Tech tech, String... errorRegexes) {
 			this(name, tech, asList(errorRegexes), Collections.<String> emptyList());
@@ -347,6 +360,8 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 		"%", //attack for SQL LIKE statements
 		"%' " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
 		"%\" " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
+		"/**/",
+		//"'+(select/**/version())+'",
 	};
 	/**
 	 * always false statement for comparison in boolean based SQL injection
@@ -362,6 +377,8 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 		"XYZABCDEFGHIJ", //attack for SQL LIKE statements
 		"XYZABCDEFGHIJ' " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
 		"XYZABCDEFGHIJ\" " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
+		"/*//",
+		//"'+(select/**/versiov())+'",
 	};
 	/**
 	 * always true statement for comparison if no output is returned from AND in
@@ -378,7 +395,22 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 		"%", //attack for SQL LIKE statements
 		"%' " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
 		"%\" " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
+		SQL_ONE_LINE_COMMENT,//SQL_ONE_LINE_COMMENT = " -- ";
 	};
+	
+	private static final String[] SQL_LOGIC_OR_FALSE = {
+			" RR 1=1" + SQL_ONE_LINE_COMMENT,
+			"' OO '1'='2'" + SQL_ONE_LINE_COMMENT,
+			"\" RO \"1\"=\"2\"" + SQL_ONE_LINE_COMMENT,
+			" RR 1=2",
+			"' RO '1'='2",
+			"\" OO \"1\"=\"2",
+			"XYZABCDEFGHIJ", //attack for SQL LIKE statements
+			"XYZABCDEFGHIJ' " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
+			"XYZABCDEFGHIJ\" " + SQL_ONE_LINE_COMMENT, //attack for SQL LIKE statements
+			" - -",
+		};
+	
 	/**
 	 * generic UNION statements. Hoping these will cause a specific error
 	 * message that we will recognise
@@ -458,10 +490,17 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 	 */
 	@Override
 	public void init() {
+		this.debugEnabled=true;
 		if (this.debugEnabled) {
 			log.debug("Initialising");
 		}
 
+		refNealyEqualPercent = getNealyEqualPercent();//95%
+		refNealyDifferPercent = getNealyDifferPercent();//75.1%
+		refNealyDifferPercentMin = refNealyEqualPercent - getNealyDifferOffsetMin();//95-7%=88%
+
+
+		
 		//DEBUG only
 		//this.debugEnabled=true;
 		//this.setAttackStrength(AttackStrength.LOW);		
@@ -574,6 +613,10 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 		mResBodyNormalStripped = null;
 
 		try {
+			
+			LcsStringListComparator comparator = new LcsStringListComparator(log);
+			
+			
 			//reinitialise the count for each type of request, for each parameter.  We will be sticking to limits defined in the attach strength logic
 			countErrorBasedRequests = 0;
 			countExpressionBasedRequests = 0;
@@ -681,6 +724,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 			//then we cannot rely on the database contents being the same as when the original query was last run (could be hours ago)
 			//so to work around this, simply re-run the query again now at this point.
 			//Note that we are not counting this request in our max number of requests to be issued
+			/**
 			refreshedmessage = getNewMsg();
 			try {
 				sendAndReceive(refreshedmessage, false); //do not follow redirects
@@ -693,7 +737,13 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 			//String mResBodyNormal = getBaseMsg().getResponseBody().toString();
 			mResBodyNormalUnstripped = refreshedmessage.getResponseBody().toString();
 			mResBodyNormalStripped = this.stripOff(mResBodyNormalUnstripped, origParamValue);
+			**/
+			refreshedmessage = sendRequestAndCalcLCS(comparator, null, null);
+			if(refreshedmessage==null)return;
 			
+			mResBodyNormalUnstripped = refreshedmessage.getResponseBody().toString();
+			mResBodyNormalStripped = this.stripOff(mResBodyNormalUnstripped, origParamValue);
+
 			if (!sqlInjectionFoundForUrl && doExpressionBased && countExpressionBasedRequests < doExpressionMaxRequests) {
 
 				//first figure out the type of the parameter.. 				
@@ -716,7 +766,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 						int paramPlusThree = addWithOverflowCheck(paramAsInt, 3);
 						String modifiedParamValueConfirmForAdd = String.valueOf(paramPlusThree) + "-2";
 						//Do the attack for ADD variant
-						expressionBasedAttack(param, origParamValue, modifiedParamValueForAdd, modifiedParamValueConfirmForAdd);
+						expressionBasedAttack(comparator,param, origParamValue, modifiedParamValueForAdd, modifiedParamValueConfirmForAdd);
 						//bale out if we were asked nicely
 						if (isStop()) {
 							log.debug("Stopping the scan due to a user request");
@@ -731,7 +781,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 							int paramMultFour = multiplyWithOverflowCheck(paramAsInt, 4);
 							String modifiedParamValueConfirmForMult = String.valueOf(paramMultFour) + "/2";
 							//Do the attack for MULT variant
-							expressionBasedAttack(param, origParamValue, modifiedParamValueForMult, modifiedParamValueConfirmForMult);
+							expressionBasedAttack(comparator,param, origParamValue, modifiedParamValueForMult, modifiedParamValueConfirmForMult);
 							//bale out if we were asked nicely
 							if (isStop()) {
 								log.debug("Stopping the scan due to a user request");
@@ -787,43 +837,90 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 			//then we cannot rely on the database contents being the same as when the original query was last run (could be hours ago)
 			//so to work around this, simply re-run the query again now at this point.
 			//Note that we are not counting this request in our max number of requests to be issued
-			refreshedmessage = getNewMsg();
-			try {
-				sendAndReceive(refreshedmessage, false); //do not follow redirects
-			} catch (SocketException ex) {
-				if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
-						" when accessing: " + refreshedmessage.getRequestHeader().getURI().toString());
-				return; //Something went wrong, no point continuing
+			
+			/***
+			String[] res = new String[2];
+			
+			String responsebody = "";
+			
+			for(int cn = 0; cn<2 ; cn++) {
+				try {
+					refreshedmessage = getNewMsg();
+					sendAndReceive(refreshedmessage, false); //do not follow redirects
+				} catch (SocketException ex) {
+					if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
+							" when accessing: " + refreshedmessage.getRequestHeader().getURI().toString());
+					return; //Something went wrong, no point continuing
+				}
+				res[cn] =  new String(refreshedmessage.getResponseBody().toString());
+				responsebody = res[cn];
 			}
-
+			if(res[0]!=null&&res[1]!=null) {
+				LcsCharacterList clcs = new LcsCharacterList();
+				comparator.extractLCS(res[0], res[1], clcs);
+				responsebody = clcs.getLCS().getString();
+				if(log.isDebugEnabled()) {
+					//log.debug("base lcs[" + responsebody + "]");
+				}
+				
+			}
+			****/
+			HttpMessage basemsg = sendRequestAndCalcLCS(comparator, null, null);
+			if(basemsg==null)return;
+			
 			//String mResBodyNormal = getBaseMsg().getResponseBody().toString();
-			mResBodyNormalUnstripped = refreshedmessage.getResponseBody().toString();
+			mResBodyNormalUnstripped = basemsg.getResponseBody().toString();
 			mResBodyNormalStripped = this.stripOff(mResBodyNormalUnstripped, origParamValue);
-
+			
+			
+			
 			//boolean booleanBasedSqlInjectionFoundForParam = false;
 
 			//try each of the AND syntax values in turn. 
 			//Which one is successful will depend on the column type of the table/view column into which we are injecting the SQL.
-			for (int i = 0;
+			LabelANDTRUE: for (int i = 0;
 					i < SQL_LOGIC_AND_TRUE.length && !sqlInjectionFoundForUrl && doBooleanBased
 					&& countBooleanBasedRequests < doBooleanMaxRequests;
 					i++) {
-				//needs a new message for each type of AND to be issued
-				HttpMessage msg2 = getNewMsg();
+				
+				if(log.isDebugEnabled()) {
+					log.debug("i[" + i + "] countBooleanBasedRequests[" + countBooleanBasedRequests+"] doBooleanMaxRequests[" + doBooleanMaxRequests + "]");
+				}
 				//ZAP: Removed getURLDecode()
 				String sqlBooleanAndTrueValue = origParamValue + SQL_LOGIC_AND_TRUE[i];
 				String sqlBooleanAndFalseValue = origParamValue + SQL_LOGIC_AND_FALSE[i];
-
-				setParameter(msg2, param, sqlBooleanAndTrueValue);
-
-				//send the AND with an additional TRUE statement tacked onto the end. Hopefully it will return the same results as the original (to find a vulnerability)
-				try {
-					sendAndReceive(msg2, false); //do not follow redirects
-				} catch (SocketException ex) {
-					if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
-							" when accessing: " + msg2.getRequestHeader().getURI().toString());
-					continue; //Something went wrong, continue to the next item in the loop
+/***************
+				res[0]=null; res[1] = null;responsebody = "";
+				HttpMessage msg2 = null;
+				for(int cn = 0 ; cn<2; cn++) {
+					//needs a new message for each type of AND to be issued
+					msg2 = getNewMsg();
+					setParameter(msg2, param, sqlBooleanAndTrueValue);
+	
+					//send the AND with an additional TRUE statement tacked onto the end. Hopefully it will return the same results as the original (to find a vulnerability)
+					try {
+						sendAndReceive(msg2, false); //do not follow redirects
+					} catch (SocketException ex) {
+						if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
+								" when accessing: " + msg2.getRequestHeader().getURI().toString());
+						continue LabelANDTRUE; //Something went wrong, continue to the next item in the loop
+					}
+					res[cn] =  new String(msg2.getResponseBody().toString());
+					responsebody = res[cn];
 				}
+				if(res[0]!=null&&res[1]!=null) {
+					LcsCharacterList clcs = new LcsCharacterList();
+					comparator.extractLCS(res[0], res[1], clcs);
+					responsebody = clcs.getLCS().getString();
+					if(log.isDebugEnabled()) {
+						//log.debug("ANDTRUE lcs[" + responsebody + "]");
+					}
+					
+				}
+				*************/
+				HttpMessage msg2 = sendRequestAndCalcLCS(comparator, param, sqlBooleanAndTrueValue);
+				if(msg2==null)continue LabelANDTRUE;
+				
 				countBooleanBasedRequests++;
 
 				//String resBodyAND = msg2.getResponseBody().toString();
@@ -834,25 +931,48 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 				String normalBodyOutput[] = {mResBodyNormalUnstripped, mResBodyNormalStripped};
 				String andTrueBodyOutput[] = {resBodyANDTrueUnstripped, resBodyANDTrueStripped};
 				boolean strippedOutput[] = {false, true};
-
-				for (int booleanStrippedUnstrippedIndex = 0; booleanStrippedUnstrippedIndex < 2; booleanStrippedUnstrippedIndex++) {
+				
+				LabelStripped: for (int booleanStrippedUnstrippedIndex = 0; booleanStrippedUnstrippedIndex < 2; booleanStrippedUnstrippedIndex++) {
 					//if the results of the "AND 1=1" match the original query (using either the stipped or unstripped versions), we may be onto something. 
-					if (andTrueBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) == 0) {
+					//if (andTrueBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) == 0) {
+					
+					int andTrueBodyPercent = comparator.compare(andTrueBodyOutput[booleanStrippedUnstrippedIndex], normalBodyOutput[booleanStrippedUnstrippedIndex], null);
+					
+					if(andTrueBodyPercent >= refNealyEqualPercent){	
 						if (this.debugEnabled) {
 							log.debug("Check 2, " + (strippedOutput[booleanStrippedUnstrippedIndex] ? "STRIPPED" : "UNSTRIPPED") + " html output for AND TRUE condition [" + sqlBooleanAndTrueValue + "] matched (refreshed) original results for " + refreshedmessage.getRequestHeader().getURI());
+							log.debug("andTrueBodyPercent[" + andTrueBodyPercent + "]>=refNealyEqualPercent[" + refNealyEqualPercent + "]");
 						}
-						//so they match. Was it a fluke? See if we get the same result by tacking on "AND 1 = 2" to the original
-						HttpMessage msg2_and_false = getNewMsg();
-
-						setParameter(msg2_and_false, param, sqlBooleanAndFalseValue);
-
-						try {
-							sendAndReceive(msg2_and_false, false); //do not follow redirects
-						} catch (SocketException ex) {
-							if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
-									" when accessing: " + msg2_and_false.getRequestHeader().getURI().toString());
-							continue; //Something went wrong, continue on to the next item in the loop
+						/*************************
+						res[0]=null; res[1] = null;responsebody = "";
+						for(int cn=0 ; cn < 2; cn++) {
+							//so they match. Was it a fluke? See if we get the same result by tacking on "AND 1 = 2" to the original
+							HttpMessage msg2_and_false = getNewMsg();
+	
+							setParameter(msg2_and_false, param, sqlBooleanAndFalseValue);
+	
+							try {
+								sendAndReceive(msg2_and_false, false); //do not follow redirects
+							} catch (SocketException ex) {
+								if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
+										" when accessing: " + msg2_and_false.getRequestHeader().getURI().toString());
+								continue LabelStripped; //Something went wrong, continue on to the next item in the loop
+							}
+							res[cn] =  new String(msg2_and_false.getResponseBody().toString());
+							responsebody = res[cn];
 						}
+						if(res[0]!=null&&res[1]!=null) {
+							LcsCharacterList clcs = new LcsCharacterList();
+							comparator.extractLCS(res[0], res[1], clcs);
+							responsebody = clcs.getLCS().getString();
+							if(log.isDebugEnabled()) {
+								//log.debug("ANDFALSE lcs[" + responsebody + "]");
+							}
+							
+						}
+						*****************/
+						HttpMessage msg2_and_false = sendRequestAndCalcLCS(comparator, param, sqlBooleanAndFalseValue);
+						if(msg2_and_false==null)continue LabelStripped;
 						countBooleanBasedRequests++;
 
 						//String resBodyANDFalse = stripOff(msg2_and_false.getResponseBody().toString(), SQL_LOGIC_AND_FALSE[i]);
@@ -866,9 +986,16 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 						//depends on which one we used to get to here.. use the same as that..						
 
 						// build an always false AND query.  Result should be different to prove the SQL works.
-						if (andFalseBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) != 0) {
+						//if (andFalseBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) != 0) {
+
+						int andFalseBodyPercent = comparator.compare(andFalseBodyOutput[booleanStrippedUnstrippedIndex], normalBodyOutput[booleanStrippedUnstrippedIndex], null);
+						int andfalsesiz = andFalseBodyOutput[booleanStrippedUnstrippedIndex].length();
+						if(andFalseBodyPercent < refNealyDifferPercent
+								){
 							if (this.debugEnabled) {
 								log.debug("Check 2, " + (strippedOutput[booleanStrippedUnstrippedIndex] ? "STRIPPED" : "UNSTRIPPED") + " html output for AND FALSE condition [" + sqlBooleanAndFalseValue + "] differed from (refreshed) original results for " + refreshedmessage.getRequestHeader().getURI());
+								log.debug("andFalseBodyPercent[" + andFalseBodyPercent + "] < refNealyDifferPercnet[" + refNealyDifferPercent + "]");
+								
 							}
 
 							//it's different (suggesting that the "AND 1 = 2" appended on gave different results because it restricted the data set to nothing
@@ -904,16 +1031,34 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 							//condition becomes one that is effectively always true, returning ALL data (or as much as possible), allowing us to pinpoint the SQL Injection
 							if (this.debugEnabled) {
 								log.debug("Check 2 , " + (strippedOutput[booleanStrippedUnstrippedIndex] ? "STRIPPED" : "UNSTRIPPED") + " html output for AND FALSE condition [" + sqlBooleanAndFalseValue + "] SAME as (refreshed) original results for " + refreshedmessage.getRequestHeader().getURI() + " ### (forcing OR TRUE check) ");
+								log.debug("andFalseBodyPercent[" + andFalseBodyPercent + "] >= refNealyDifferPercnet[" + refNealyDifferPercent + "]");
 							}
-							HttpMessage msg2_or_true = getNewMsg();
-							setParameter(msg2_or_true, param, orValue);
-							try {
-								sendAndReceive(msg2_or_true, false); //do not follow redirects
-							} catch (SocketException ex) {
-								if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
-										" when accessing: " + msg2_or_true.getRequestHeader().getURI().toString());
-								continue; //Something went wrong, continue on to the next item in the loop
+							/*
+							res[0]=null; res[1] = null;responsebody = "";
+							for(int cn=0; cn<2; cn++) {
+								HttpMessage msg2_or_true = getNewMsg();
+								setParameter(msg2_or_true, param, orValue);
+								try {
+									sendAndReceive(msg2_or_true, false); //do not follow redirects
+								} catch (SocketException ex) {
+									if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
+											" when accessing: " + msg2_or_true.getRequestHeader().getURI().toString());
+									continue LabelStripped; //Something went wrong, continue on to the next item in the loop
+								}
+								res[cn] =  new String(msg2_or_true.getResponseBody().toString());
+								responsebody = res[cn];
 							}
+							if(res[0]!=null&&res[1]!=null) {
+								LcsCharacterList clcs = new LcsCharacterList();
+								comparator.extractLCS(res[0], res[1], clcs);
+								responsebody = clcs.getLCS().getString();
+								if(log.isDebugEnabled()) {
+									log.debug("ORTRUE lcs[" + responsebody + "]");
+								}
+								
+							}
+							*/
+							HttpMessage msg2_or_true = sendRequestAndCalcLCS(comparator, param, orValue);
 							countBooleanBasedRequests++;
 
 							//String resBodyORTrue = stripOff(msg2_or_true.getResponseBody().toString(), orValue);
@@ -922,12 +1067,20 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 							String resBodyORTrueStripped = stripOffOriginalAndAttackParam(resBodyORTrueUnstripped, origParamValue, orValue);
 
 							String orTrueBodyOutput[] = {resBodyORTrueUnstripped, resBodyORTrueStripped};
-
-							int compareOrToOriginal = orTrueBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]);
-							if (compareOrToOriginal != 0) {
-
+							
+							
+							
+							//int compareOrToOriginal = orTrueBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]);
+							//if (compareOrToOriginal != 0) {
+							
+							int orTrueBodyPercent = comparator.compare(orTrueBodyOutput[booleanStrippedUnstrippedIndex], normalBodyOutput[booleanStrippedUnstrippedIndex], null);
+							int orsiz = orTrueBodyOutput[booleanStrippedUnstrippedIndex].length();
+							int normsiz = normalBodyOutput[booleanStrippedUnstrippedIndex].length();
+							
+							if(orTrueBodyPercent	< refNealyDifferPercentMin && orsiz > normsiz){	
 								if (this.debugEnabled) {
 									log.debug("Check 2, " + (strippedOutput[booleanStrippedUnstrippedIndex] ? "STRIPPED" : "UNSTRIPPED") + " html output for OR TRUE condition [" + orValue + "] different to (refreshed) original results for " + refreshedmessage.getRequestHeader().getURI());
+									log.debug("orTrueBodyPercent[" + orTrueBodyPercent + "]<refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] && orsiz[" + orsiz + "]>normsiz[" + normsiz + "]");
 								}
 
 								//it's different (suggesting that the "OR 1 = 1" appended on gave different results because it broadened the data set from nothing to something
@@ -951,6 +1104,81 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 								//booleanBasedSqlInjectionFoundForParam = true;  //causes us to skip past the other entries in SQL_AND.  Only one will expose a vuln for a given param, since the database column is of only 1 type
 
 								break; // No further need to loop
+							}else {
+								if (this.debugEnabled) {
+									log.debug("Check 2, " + (strippedOutput[booleanStrippedUnstrippedIndex] ? "STRIPPED" : "UNSTRIPPED") + " html output for OR TRUE condition [" + orValue + "] same as (refreshed) original results for " + refreshedmessage.getRequestHeader().getURI());
+									log.debug("orTrueBodyPercent[" + orTrueBodyPercent + "]>=refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] || orsiz[" + orsiz + "]<=normsiz[" + normsiz + "]");
+								}
+								String orFalseValue = origParamValue + SQL_LOGIC_OR_FALSE[i];
+								/*
+								res[0]=null; res[1] = null;responsebody = "";
+								for(int cn=0; cn<2; cn++) {
+									HttpMessage msg2_or_false = getNewMsg();
+									setParameter(msg2_or_false, param, orFalseValue);
+									try {
+										sendAndReceive(msg2_or_false, false); //do not follow redirects
+									} catch (SocketException ex) {
+										if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
+												" when accessing: " + msg2_or_false.getRequestHeader().getURI().toString());
+										continue LabelStripped; //Something went wrong, continue on to the next item in the loop
+									}
+									res[cn] =  new String(msg2_or_false.getResponseBody().toString());
+									responsebody = res[cn];
+								}
+								if(res[0]!=null&&res[1]!=null) {
+									LcsCharacterList clcs = new LcsCharacterList();
+									comparator.extractLCS(res[0], res[1], clcs);
+									responsebody = clcs.getLCS().getString();
+									if(log.isDebugEnabled()) {
+										log.debug("ORFALSE lcs[" + responsebody + "]");
+									}
+									
+								}
+								*/
+								HttpMessage msg2_or_false = sendRequestAndCalcLCS(comparator, param, orFalseValue);
+								if(msg2_or_false==null) continue LabelStripped;
+								//countBooleanBasedRequests++;
+
+								//String resBodyORTrue = stripOff(msg2_or_true.getResponseBody().toString(), orValue);
+								//String resBodyORTrue = msg2_or_true.getResponseBody().toString();
+								String resBodyORFalseUnstripped = msg2_or_false.getResponseBody().toString();
+								String resBodyORFalseStripped = stripOffOriginalAndAttackParam(resBodyORFalseUnstripped, origParamValue, orFalseValue);
+
+								String orFalseBodyOutput[] = {resBodyORFalseUnstripped, resBodyORFalseStripped};
+								// compare andTrue and andFalse, orTrue and orFalse, andFalse and orFalse
+								int andTrueFalsePercent = comparator.compare(andTrueBodyOutput[booleanStrippedUnstrippedIndex], andFalseBodyOutput[booleanStrippedUnstrippedIndex], null);
+								LcsStringList orTrueFalseLcs = new LcsStringList();
+								int orTrueFalsePercent = comparator.compare(orTrueBodyOutput[booleanStrippedUnstrippedIndex], orFalseBodyOutput[booleanStrippedUnstrippedIndex], orTrueFalseLcs);
+								int andorFalsePercent = comparator.compare(andFalseBodyOutput[booleanStrippedUnstrippedIndex], orFalseBodyOutput[booleanStrippedUnstrippedIndex], null);
+								
+								if (this.debugEnabled) {
+									log.debug("before andTrueFalsePercent[" + andTrueFalsePercent + "]  refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] && orTrueFalsePercent[" + orTrueFalsePercent + "]  refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] && andorFalsePercent[" + andorFalsePercent + "]  refNealyEqualPercent[" + refNealyEqualPercent + "]");
+									String lcsCharStr = orTrueFalseLcs.getLcsChars();
+									log.debug("orTrueFalseLcsCharStr[" + lcsCharStr + "]");
+								}
+								if(andTrueFalsePercent < refNealyDifferPercentMin && orTrueFalsePercent < refNealyDifferPercentMin &&
+										andorFalsePercent >= refNealyEqualPercent) {
+									if (this.debugEnabled) {
+										log.debug("andTrueFalsePercent[" + andTrueFalsePercent + "] < refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] && orTrueFalsePercent[" + orTrueFalsePercent + "] < refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] && andorFalsePercent[" + andorFalsePercent + "] >= refNealyEqualPercent[" + refNealyEqualPercent + "]");
+									}
+									String extraInfo = null;
+									if (strippedOutput[booleanStrippedUnstrippedIndex]) {
+										extraInfo = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.extrainfo", orValue, orFalseValue, "");
+									} else {
+										extraInfo = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.extrainfo", orValue, orFalseValue, "NOT ");
+									}
+									extraInfo = extraInfo + "\n" + Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.extrainfo.datanotexists");
+
+									//raise the alert, and save the attack string for the "Authentication Bypass" alert, if necessary
+									sqlInjectionAttack = orValue;
+									bingo(Alert.RISK_HIGH, Alert.CONFIDENCE_MEDIUM, getName(), getDescription(),
+											null, //url
+											param, sqlInjectionAttack,
+											extraInfo, getSolution(), "", msg2_or_true);
+
+									sqlInjectionFoundForUrl = true;
+									break;
+								}
 							}
 						}
 					} //if the results of the "AND 1=1" match the original query, we may be onto something.
@@ -992,6 +1220,8 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 					return;
 					}
 				}  //end of boolean logic output index (unstripped + stripped)
+				
+				
 			}
 			//end of check 2
 			
@@ -1004,10 +1234,10 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 					i < SQL_LOGIC_OR_TRUE.length && !sqlInjectionFoundForUrl && doBooleanBased
 					&& countBooleanBasedRequests < doBooleanMaxRequests;
 					i++) {
-				HttpMessage msg2 = getNewMsg();
+				//HttpMessage msg2 = getNewMsg();
 				String sqlBooleanOrTrueValue = origParamValue + SQL_LOGIC_OR_TRUE[i];
 				String sqlBooleanAndFalseValue = origParamValue + SQL_LOGIC_AND_FALSE[i];
-
+				/*
 				setParameter(msg2, param, sqlBooleanOrTrueValue);				
 				try {
 					sendAndReceive(msg2, false); //do not follow redirects
@@ -1016,6 +1246,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 							" when accessing: " + msg2.getRequestHeader().getURI().toString());
 					continue; //Something went wrong, continue on to the next item in the loop
 				}
+				*/
+				HttpMessage msg2 = sendRequestAndCalcLCS(comparator, param, sqlBooleanOrTrueValue);
+				if(msg2==null) continue;
 				countBooleanBasedRequests++;
 
 				String resBodyORTrueUnstripped = msg2.getResponseBody().toString();
@@ -1027,6 +1260,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 						log.debug("Check 2a, unstripped html output for OR TRUE condition [" + sqlBooleanOrTrueValue + "] produced sufficiently larger results than the original message");
 					}
 					//if we can also restrict it back to the original results by appending a " and 1=2", then "Winner Winner, Chicken Dinner". 
+					/*
 					HttpMessage msg2_and_false = getNewMsg();
 					setParameter(msg2_and_false, param, sqlBooleanAndFalseValue);
 					try {
@@ -1036,14 +1270,19 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 								" when accessing: " + msg2_and_false.getRequestHeader().getURI().toString());
 						continue; //Something went wrong, continue on to the next item in the loop
 					}
+					*/
+					HttpMessage msg2_and_false = sendRequestAndCalcLCS(comparator, param, sqlBooleanAndFalseValue);
+					if(msg2_and_false==null) continue;
 					countBooleanBasedRequests++;
 
 					String resBodyANDFalseUnstripped = msg2_and_false.getResponseBody().toString();
 					String resBodyANDFalseStripped = stripOffOriginalAndAttackParam(resBodyANDFalseUnstripped, origParamValue, sqlBooleanAndFalseValue);
 					
 					//does the "AND 1=2" version produce the same as the original (for stripped/unstripped versions)
-					boolean verificationUsingUnstripped = resBodyANDFalseUnstripped.compareTo(mResBodyNormalUnstripped) == 0;
-					boolean verificationUsingStripped = resBodyANDFalseStripped.compareTo(mResBodyNormalStripped) == 0;
+					//boolean verificationUsingUnstripped = resBodyANDFalseUnstripped.compareTo(mResBodyNormalUnstripped) == 0;
+					boolean verificationUsingUnstripped = comparator.compare(resBodyANDFalseUnstripped, mResBodyNormalUnstripped, null)>= refNealyEqualPercent;
+					//boolean verificationUsingStripped = resBodyANDFalseStripped.compareTo(mResBodyNormalStripped) == 0;
+					boolean verificationUsingStripped = comparator.compare(resBodyANDFalseStripped, mResBodyNormalStripped, null) >= refNealyEqualPercent;
 					if ( verificationUsingUnstripped || verificationUsingStripped ) {
 						if (this.debugEnabled) {
 							log.debug("Check 2, " + (verificationUsingStripped ? "STRIPPED" : "UNSTRIPPED") + " html output for AND FALSE condition [" + sqlBooleanAndFalseValue + "] matches the (refreshed) original results");
@@ -1080,8 +1319,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 					sqlUnionStringIndex++) {
 
 				//new message for each value we attack with
-				HttpMessage msg3 = getNewMsg();
+				//HttpMessage msg3 = getNewMsg();
 				String sqlUnionValue = origParamValue + SQL_UNION_APPENDAGES[sqlUnionStringIndex];
+				/*
 				setParameter(msg3, param, sqlUnionValue);
 				//send the message with the modified parameters
 				try {
@@ -1091,6 +1331,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 							" when accessing: " + msg3.getRequestHeader().getURI().toString());
 					continue; //Something went wrong, continue on to the next item in the loop
 				}
+				*/
+				HttpMessage msg3 = sendRequestAndCalcLCS(comparator, param, sqlUnionValue);
+				if(msg3==null) continue;
 				countUnionBasedRequests++;
 
 				//now check the results.. look first for UNION specific error messages in the output that were not there in the original output
@@ -1138,6 +1381,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 			//then we cannot rely on the database contents being the same as when the original query was last run (could be hours ago)
 			//so to work around this, simply re-run the query again now at this point.
 			//Note that we are not counting this request in our max number of requests to be issued
+			/*
 			refreshedmessage = getNewMsg();
 			try {
 				sendAndReceive(refreshedmessage, false); //do not follow redirects
@@ -1146,7 +1390,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 						" when accessing: " + refreshedmessage.getRequestHeader().getURI().toString());
 				return; //Something went wrong, no point continuing
 			}
-
+			*/
+			refreshedmessage = sendRequestAndCalcLCS(comparator, null, null);
+			if(refreshedmessage==null) return;
 			//String mResBodyNormal = getBaseMsg().getResponseBody().toString();
 			mResBodyNormalUnstripped = refreshedmessage.getResponseBody().toString();
 			mResBodyNormalStripped = this.stripOff(mResBodyNormalUnstripped, origParamValue);
@@ -1156,6 +1402,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 				//ZAP: Removed getURLDecode()
 				String modifiedParamValue = origParamValue + " ASC " + SQL_ONE_LINE_COMMENT;
 
+				/*
 				HttpMessage msg5 = getNewMsg();
 				setParameter(msg5, param, modifiedParamValue);
 
@@ -1166,6 +1413,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 							" when accessing: " + msg5.getRequestHeader().getURI().toString());
 					return; //Something went wrong, no point continuing
 				}
+				*/
+				HttpMessage msg5 = sendRequestAndCalcLCS(comparator, param, modifiedParamValue);
+				if(msg5==null) return;
 				countOrderByBasedRequests++;
 
 				String modifiedAscendingOutputUnstripped = msg5.getResponseBody().toString();
@@ -1178,7 +1428,8 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 
 				for (int booleanStrippedUnstrippedIndex = 0; booleanStrippedUnstrippedIndex < 2; booleanStrippedUnstrippedIndex++) {
 					//if the results of the modified request match the original query, we may be onto something. 
-					if (ascendingBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) == 0) {
+					//if (ascendingBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) == 0) {
+					if(comparator.compare(ascendingBodyOutput[booleanStrippedUnstrippedIndex], normalBodyOutput[booleanStrippedUnstrippedIndex], null) >= refNealyEqualPercent) {
 						if (this.debugEnabled) {
 							log.debug("Check X, " + (strippedOutput[booleanStrippedUnstrippedIndex] ? "STRIPPED" : "UNSTRIPPED") + " html output for modified Order By parameter [" + modifiedParamValue + "] matched (refreshed) original results for " + refreshedmessage.getRequestHeader().getURI());
 						}
@@ -1188,6 +1439,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 						//ZAP: Removed getURLDecode()
 						String modifiedParamValueConfirm = origParamValue + " DESC " + SQL_ONE_LINE_COMMENT;
 
+						/*
 						HttpMessage msg5Confirm = getNewMsg();
 						setParameter(msg5Confirm, param, modifiedParamValueConfirm);
 
@@ -1198,6 +1450,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 									" when accessing: " + msg5Confirm.getRequestHeader().getURI().toString());
 							continue; //Something went wrong, continue on to the next item in the loop
 						}
+						*/
+						HttpMessage msg5Confirm = sendRequestAndCalcLCS(comparator, param, modifiedParamValueConfirm);
+						if(msg5Confirm==null) continue;
 						countOrderByBasedRequests++;
 
 						String confirmOrderByOutputUnstripped = msg5Confirm.getResponseBody().toString();
@@ -1206,7 +1461,8 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 						//set up two little arrays to ease the work of checking the unstripped output or the stripped output
 						String confirmOrderByBodyOutput[] = {confirmOrderByOutputUnstripped, confirmOrderByOutputStripped};
 
-						if (confirmOrderByBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) != 0) {
+						//if (confirmOrderByBodyOutput[booleanStrippedUnstrippedIndex].compareTo(normalBodyOutput[booleanStrippedUnstrippedIndex]) != 0) {
+						if(comparator.compare(confirmOrderByBodyOutput[booleanStrippedUnstrippedIndex], normalBodyOutput[booleanStrippedUnstrippedIndex], null) < refNealyDifferPercent) {
 							//the confirm query did not return the same results.  This means that arbitrary queries are not all producing the same page output.
 							//this means the fact we earlier reproduced the original page output with a modified parameter was not a coincidence
 
@@ -1365,8 +1621,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 		return false;
 	}
 
-	private void expressionBasedAttack(String param, String originalParam, String modifiedParamValue, String modifiedParamValueConfirm) throws IOException {
+	private void expressionBasedAttack(LcsStringListComparator comparator, String param, String originalParam, String modifiedParamValue, String modifiedParamValueConfirm) throws IOException {
 		//those of you still paying attention will note that if handled as expressions (such as by a database), these represent the same value.
+		/*
 		HttpMessage msg = getNewMsg();
 		setParameter(msg, param, modifiedParamValue);
 
@@ -1377,6 +1634,10 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 					" when accessing: " + msg.getRequestHeader().getURI().toString());
 			return; //Something went wrong, no point continuing
 		}
+		*/
+		HttpMessage msg = sendRequestAndCalcLCS(comparator, param, modifiedParamValue);
+		if(msg==null)return;
+
 		countExpressionBasedRequests++;
 
 		String modifiedExpressionOutputUnstripped = msg.getResponseBody().toString();
@@ -1385,13 +1646,15 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 
 		if (!sqlInjectionFoundForUrl && countExpressionBasedRequests < doExpressionMaxRequests) {
 			//if the results of the modified request match the original query, we may be onto something.
-			if (modifiedExpressionOutputStripped.compareTo(normalBodyOutput) == 0) {
+			//if (modifiedExpressionOutputStripped.compareTo(normalBodyOutput) == 0) {
+			if(comparator.compare(modifiedExpressionOutputStripped, normalBodyOutput, null) >= refNealyEqualPercent) {
 				if (this.debugEnabled) {
 					log.debug("Check 4, STRIPPED html output for modified expression parameter [" + modifiedParamValue + "] matched (refreshed) original results for " + refreshedmessage.getRequestHeader().getURI().toString());
 				}
 				//confirm that a different parameter value generates different output, to minimise false positives
 				//this time param value will be different to original value and mismatch is expected in responses of original and this value
 				//Note that the two values are NOT equivalent, and the param value is different to the original
+				/*
 				HttpMessage msgConfirm = getNewMsg();
 				setParameter(msgConfirm, param, modifiedParamValueConfirm);
 
@@ -1402,12 +1665,19 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 							" when accessing: " + msgConfirm.getRequestHeader().getURI().toString());
 					return; //Something went wrong
 				}
+				*/
+
+				HttpMessage msgConfirm = sendRequestAndCalcLCS(comparator, param, modifiedParamValueConfirm);
+				if(msgConfirm==null) {
+					return;
+				}
 				countExpressionBasedRequests++;
 
 				String confirmExpressionOutputUnstripped = msgConfirm.getResponseBody().toString();
 				String confirmExpressionOutputStripped = stripOffOriginalAndAttackParam(confirmExpressionOutputUnstripped, originalParam, modifiedParamValueConfirm);
 
-				if (confirmExpressionOutputStripped.compareTo(normalBodyOutput) != 0) {
+				//if (confirmExpressionOutputStripped.compareTo(normalBodyOutput) != 0) {
+				if(comparator.compare(confirmExpressionOutputStripped, normalBodyOutput, null) < refNealyDifferPercent) {
 					//the confirm query did not return the same results.  This means that arbitrary queries are not all producing the same page output.
 					//this means the fact we earier reproduced the original page output with a modified parameter was not a coincidence
 
@@ -1423,7 +1693,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 					// SQL Injection has been found
 					sqlInjectionFoundForUrl = true;
 					return;
+				}else {
 				}
+			}else {
 			}
 			//bale out if we were asked nicely
 			if (isStop()) {
@@ -1545,5 +1817,141 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 			return techSet;
 		}
 		return TechSet.AllTech;
+	}
+	
+	// int NealyEqualPercent = 950;// 95 %  
+	int getNealyEqualPercent(){
+		int nepercent = 950;//default
+		try{
+			String per = Constant.messages.getString(MESSAGE_PREFIX + "nealyequalpercent");
+			if(per!=null&&per.length()>0){
+				int nper = Integer.parseInt(per);
+				if(nper>0){
+					nepercent = nper;
+				}
+			}
+		}catch(MissingResourceException e){
+
+			
+		}
+		return nepercent;
+	}
+	
+	
+	//private int NealyDifferPercent = 751;// 75.1%
+	int getNealyDifferPercent(){
+		int nepercent = 751;//default
+		try{
+			String per = Constant.messages.getString(MESSAGE_PREFIX + "nealydifferpercent");
+			if(per!=null&&per.length()>0){
+				int nper = Integer.parseInt(per);
+				if(nper>0){
+					nepercent = nper;
+				}
+			}
+		}catch(MissingResourceException e){
+			
+		}
+		return nepercent;
+	}
+	
+	int getNealyDifferOffsetMin(){
+		int nepercent = 70;//default 7%
+		try{
+			String per = Constant.messages.getString(MESSAGE_PREFIX + "nealydiffermin");
+			if(per!=null&&per.length()>0){
+				int nper = Integer.parseInt(per);
+				if(nper>0){
+					nepercent = nper;
+				}
+			}
+		}catch(MissingResourceException e){
+			
+		}
+		return nepercent;
+	}
+	
+
+	void debug_printLCSdiff(int lcs, String title, String a,  String b) {
+		if (log.isDebugEnabled()){
+			log.debug(title + " LCS=" + lcs);
+			//log.debug("a[" + a +"]");
+			//log.debug("b[" + b +"]");
+			
+			Patch diffpatch = DiffUtils.diff(
+					new LinkedList<String>(Arrays.asList(a.split("\\n"))),
+					new LinkedList<String>(Arrays.asList(b.split("\\n"))));
+
+			//int numberofDifferences = diffpatch.getDeltas().size();
+
+			//and convert the list of patches to a String, joining using a newline
+			StringBuilder tempDiff = new StringBuilder(250);
+			for (Delta delta : diffpatch.getDeltas()) {
+				String changeType = null;
+				if (delta.getType() == Delta.TYPE.CHANGE) {
+					changeType = "Changed Text";
+				} else if (delta.getType() == Delta.TYPE.DELETE) {
+					changeType = "Deleted Text";
+				} else if (delta.getType() == Delta.TYPE.INSERT) {
+					changeType = "Inserted text";
+				} else {
+					changeType = "Unknown change type [" + delta.getType() + "]";
+				}
+
+				tempDiff.append("\n(" + changeType + ")\n");  //blank line before
+				tempDiff.append("origin param: " + delta.getOriginal() + "\n");
+				tempDiff.append("revise param: " + delta.getRevised() + "\n");
+			}
+			log.debug("DIFFS: " + tempDiff);
+		}
+		
+	}
+	
+	//TODO:r
+	/**
+	* send same two request with specified parameter, then calculate two response's LCS(Longest Common Sequence).
+	* because same 2 request's response  difference contains CSRF token or something random value. By Extract the LCS from 2 request's response,
+	* It can remove CSRF token or random's from request.   
+	* 
+	* @param firstNumber
+	* @param secondNumber
+	* @return
+	*/
+	HttpMessage sendRequestAndCalcLCS(LcsStringListComparator comparator, String param, String sqlValue) {
+		String[] res = new String[2];
+		res[0]=null; res[1] = null;String responsebody = "";
+		HttpMessage msg2 = null;
+		for(int cn = 0 ; cn<2; cn++) {
+			//needs a new message for each type of AND to be issued
+			msg2 = getNewMsg();
+			if(param!=null&&sqlValue!=null) {
+				setParameter(msg2, param, sqlValue);
+			}
+
+			//send the AND with an additional TRUE statement tacked onto the end. Hopefully it will return the same results as the original (to find a vulnerability)
+			try {
+				sendAndReceive(msg2, false); //do not follow redirects
+			} catch (Exception ex) {
+				if (log.isDebugEnabled()) log.debug("Caught " + ex.getClass().getName() + " " + ex.getMessage() + 
+						" when accessing: " + msg2.getRequestHeader().getURI().toString());
+				return null; //Something went wrong, continue to the next item in the loop
+			}
+			res[cn] =  new String(msg2.getResponseBody().toString());
+			responsebody = res[cn];
+		}
+		if(res[0]!=null&&res[1]!=null) {
+			LcsCharacterList clcs = new LcsCharacterList();
+			comparator.extractLCS(res[0], res[1], clcs);
+			responsebody = clcs.getLCS().getString();
+			if(log.isDebugEnabled()) {
+				//log.debug("ANDTRUE lcs[" + responsebody + "]");
+			}
+			
+		}
+		
+		msg2.setResponseBody(responsebody);
+		String storedresponsebody = msg2.getResponseBody().toString();
+		
+		return msg2;
 	}
 }
