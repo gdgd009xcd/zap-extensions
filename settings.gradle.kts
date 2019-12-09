@@ -10,7 +10,7 @@ var addOns = listOf(
     "alertFilters",
     "alertReport",
     "amf",
-    "ascanrules",
+ 
     "ascanrulesAlpha",
     "ascanrulesBeta",
     "authstats",
@@ -73,6 +73,7 @@ var addOns = listOf(
     "soap",
     "spiderAjax",
     "sqliplugin",
+"sqlimprove",
     "sse",
     "svndigger",
     "tips",

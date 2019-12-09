@@ -22,7 +22,7 @@ val parentProjects = listOf(
 
 val mainAddOns = listOf(
     "alertFilters",
-    "ascanrules",
+    
     "bruteforce",
     "coreLang",
     "diff",
@@ -46,6 +46,7 @@ val mainAddOns = listOf(
     "scripts",
     "selenium",
     "spiderAjax",
+"sqlimprove",
     "tips",
     "webdriverlinux",
     "webdrivermacos",
