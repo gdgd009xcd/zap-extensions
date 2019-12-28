@@ -64,7 +64,6 @@ public class TestCrossSiteScriptV2UnitTest
                     protected Response serve(IHTTPSession session) {
                         String name = getFirstParamValue(session, "name");
                         String response;
-
                         if (name != null) {
                             response =
                                     getHtml(
@@ -73,7 +72,6 @@ public class TestCrossSiteScriptV2UnitTest
                         } else {
                             response = getHtml("NoInput.html");
                         }
-
                         return newFixedLengthResponse(response);
                     }
                 });
