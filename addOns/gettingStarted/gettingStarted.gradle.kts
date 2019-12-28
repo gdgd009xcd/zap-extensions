@@ -1,6 +1,6 @@
 import org.zaproxy.gradle.addon.AddOnStatus
 
-version = "10"
+version = "11"
 description = "A short Getting Started with ZAP Guide"
 
 zapAddOn {
@@ -10,5 +10,6 @@ zapAddOn {
 
     manifest {
         author.set("ZAP Dev Team")
+        notBeforeVersion.set("2.8.0")
     }
 }

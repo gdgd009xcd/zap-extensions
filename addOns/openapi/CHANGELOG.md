@@ -5,9 +5,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+
+## [14] - 2019-12-02
+### Added
+- Support OpenAPI v3.0 (Issue 4549).
+- Allow to specify the target URL (scheme, authority, and path) when importing through the command line.
+
+### Changed
+- Do not consume spider resource if not parsed as OpenAPI definition.
+- Allow to specify the target URL when importing from file through the API and GUI.
+- Allow to override also the scheme and path when importing from URL through the API.
+
+## [13] - 2019-07-18
+
 - Added Accept header for importing an OpenAPI definition from an URL, in the proper format.
 - Correct import of v1.2 definitions (Issue 5262).
 - Fix exception when reporting errors.
+- Update minimum ZAP version to 2.8.0.
+- Add import menu to (new) top level Import menu instead of Tools menu.
+- Add support for primitive values (standalone and within arrays) in a request body (Issue 5250).
 
 ## 12 - 2018-05-18
 
@@ -64,3 +80,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - First Version
 
+[14]: https://github.com/zaproxy/zap-extensions/releases/openapi-v14
+[13]: https://github.com/zaproxy/zap-extensions/releases/openapi-v13

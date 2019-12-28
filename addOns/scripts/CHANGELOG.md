@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Changed
+- Update minimum ZAP version to 2.8.0.
+- Update help to mention custom script/global variables (Issue 3402).
+- Move empty template entry to the top, for consistency with other fields in New Script dialogue.
+- Save cursor position when switching between scripts.
+
+### Fixed
+- Fix links in script templates.
+
+## [25] - 2019-06-07
+
 - Fix typo in help page.
 - Execute Targeted scripts in other thread than GUI thread.
 - Clear highlighting syntax when a non-script node is selected.
@@ -131,3 +142,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 
+[25]: https://github.com/zaproxy/zap-extensions/releases/scripts-v25

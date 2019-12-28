@@ -5,10 +5,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
-- Two new options are provided as part of issue 173.
-- One option allows the user to specify the file extensions to ignore.
-- URIs ending with specified file extensions are ignored from making requests to the server.
-- The other option allows the user to specify fail case string.
+- Now targets ZAP 2.8.0.
+- Fix un-handled exception when base request doesn't end in a slash (Issue 5435).
+- Split up the functionality from the desktop UI and provide external access (Issue 2848)
+- Updated addon to use log4j instead of stdout (Issue 5530)
+- Log exceptions instead of printing to stderr (Issue 5564).
+- Address UI hang.
+
+## Added
+- Table export button.
+
+## [8] - 2019-06-07
+
+- Two new options are provided as part of issue 173:
+  - One option allows the user to specify the file extensions to ignore.
+  URIs ending with specified file extensions are ignored from making requests to the server.
+  - The other option allows the user to specify fail case string.
 - Inform of running scans (e.g. on session change, add-on uninstall).
 - Issue 2000 - Updated strings shown in attack menu with title caps.
 - Enable start button on file selection.
@@ -47,3 +59,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - First release as an add-on, previously bundled with ZAP core.
 
+[8]: https://github.com/zaproxy/zap-extensions/releases/bruteforce-v8

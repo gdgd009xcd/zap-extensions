@@ -1,4 +1,4 @@
-version = "5"
+version = "6"
 description = "New HTML report module allows users to customize report content."
 
 zapAddOn {
@@ -8,4 +8,10 @@ zapAddOn {
     manifest {
         author.set("Chienli Ma")
     }
+}
+
+spotless {
+    javaWith3rdPartyFormatted(project, listOf(
+        "**/ReportGenerator.java",
+        "**/ReportLastScan.java"))
 }

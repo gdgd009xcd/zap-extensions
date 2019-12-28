@@ -5,6 +5,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+
+## [27] - 2019-12-16
+
+### Added
+- Added Hidden Files Finder (issue 4585) largely based on Snallygaster by Hanno Böck, also supports use of the Custom Payloads addon.
+
+### Removed
+- The following scan rules were removed in being promoted from Alpha to Beta:
+  - Apache Range Header DoS
+  - Cookie Slack Detector
+  - ELMAH Information Leak
+  - GET for POST
+  - .htaccess Information Leak
+  - HTTP Only Site
+  - Httpoxy - Proxy Header Misuse
+  - HTTPS Content Available via HTTP
+  - Proxy Disclosure
+  - Relative Path Confusion
+  - Source Code Disclosure - File Inclusion
+  - Source Code Disclosure - Git
+  - SQL Injection - MsSQL
+  - SQL Injection - SQLite
+  - Trace.axd Information Leak
+  - User Agent Fuzzer
+
+## [26] - 2019-10-31
+
+### Added
+- Add dependency on Custom Payloads add-on. The payloads of the Test User Agent scanner are now customizable.
+- Added XSLT Injection Scanner (issue 3572).
+
+### Changed
+- Update minimum ZAP version to 2.8.0.
+
+## [25] - 2019-07-11
+
+### Fixed
+- Fix FP in Cloud Metadata rule where no content returned.
+- Fix FP in Ht Access Scanner where HTML, XML, JSON or empty response is returned (Issue 5433).
+
+## [24] - 2019-06-07
+
 ### Fixed
 - Fix typo in request header used by Apache Range Header DoS.
 
@@ -140,3 +182,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - First version, including persistent XSS tests
 
+[27]: https://github.com/zaproxy/zap-extensions/releases/ascanrulesAlpha-v27
+[26]: https://github.com/zaproxy/zap-extensions/releases/ascanrulesAlpha-v26
+[25]: https://github.com/zaproxy/zap-extensions/releases/ascanrulesAlpha-v25
+[24]: https://github.com/zaproxy/zap-extensions/releases/ascanrulesAlpha-v24

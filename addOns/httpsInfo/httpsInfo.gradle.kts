@@ -1,4 +1,4 @@
-version = "12"
+version = "13"
 description = "Displays HTTPS configuration information."
 
 zapAddOn {
@@ -7,6 +7,10 @@ zapAddOn {
 
     manifest {
         author.set("ZAP Dev Team")
+    }
+
+    wikiGen {
+        wikiFilesPrefix.set("HelpAddonsHttpsinfo")
     }
 }
 

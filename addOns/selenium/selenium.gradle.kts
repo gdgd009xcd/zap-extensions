@@ -1,6 +1,6 @@
 import org.zaproxy.gradle.addon.AddOnStatus
 
-version = "15"
+version = "15.1.0"
 description = "WebDriver provider and includes HtmlUnit browser"
 
 zapAddOn {
@@ -9,7 +9,6 @@ zapAddOn {
     zapVersion.set("2.7.0")
 
     manifest {
-        semVer.set("2.0.0")
         author.set("ZAP Dev Team")
     }
 
@@ -21,7 +20,9 @@ zapAddOn {
 }
 
 dependencies {
-    api("org.seleniumhq.selenium:selenium-server:3.7.1")
+    api("org.seleniumhq.selenium:selenium-server:3.141.59")
+    api("org.seleniumhq.selenium:htmlunit-driver:2.36.0")
+    api("com.codeborne:phantomjsdriver:1.4.4")
 
     testImplementation(project(":testutils"))
 }

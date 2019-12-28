@@ -5,8 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+ - Enable websockets ([Issue 4521](https://github.com/zaproxy/zaproxy/issues/4521))
+
+## [23.0.0] - 2019-06-07
+
 - Correct WebDriver requester ID.
 - Remove unused resource messages.
+- Generate start and stop events.
+- Run with Firefox headless by default (Issue 3866).
+- Depend on newer version of Selenium add-on.
 
 ## 22 - 2018-08-08
 
@@ -141,3 +148,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 
+[23.0.0]: https://github.com/zaproxy/zap-extensions/releases/spiderAjax-v23.0.0

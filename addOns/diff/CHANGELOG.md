@@ -5,7 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+
+## [9] - 2019-06-07
+
 - Maintenance changes.
+- Bundle Diff Utils library instead of relying on core.
 
 ## 8 - 2017-11-27
 
@@ -45,3 +49,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - First version.
 
+[9]: https://github.com/zaproxy/zap-extensions/releases/diff-v9

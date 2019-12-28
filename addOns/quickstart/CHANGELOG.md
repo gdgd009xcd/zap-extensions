@@ -5,8 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
-- Support dev and 2.8+ versions for default quick start page.
+- Maintenance changes.
+- Link to newer Getting Started Guide.
+- Improve permissions and space handling when saving.
+
+## [26] - 2019-06-07
+
 - Improve outgoing proxy failure error message (Issue 5304).
+- Introduce News panel and use default quick start page 
+- Dont make news request if -silent option used
+- Allow to use headless browsers in automated scans, use Firefox headless by default (Issue 3866).
+- Depend on newer version of Selenium add-on.
 
 ## 25 - 2018-12-11
 
@@ -109,3 +118,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 
+[26]: https://github.com/zaproxy/zap-extensions/releases/quickstart-v26

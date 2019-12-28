@@ -1,4 +1,4 @@
-version = "8"
+version = "10"
 description = "DOM XSS Active scanner rule"
 
 zapAddOn {
@@ -16,7 +16,7 @@ zapAddOn {
         dependencies {
             addOns {
                 register("selenium") {
-                    semVer.set("2.*")
+                    version.set("15.*")
                 }
             }
         }

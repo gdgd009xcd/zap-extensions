@@ -5,6 +5,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Changed
+- Maintenance changes.
+- Disable table sort in WebSockets panel, not working properly (Issue 1661).
+
+## [20] - 2019-07-23
+
+- Add WebSocket passive scan infrastructure.
+  - Add WebSocket Passive scan script plugin.
+    - Template scripts for:
+      - Python
+      - Javascript
+    - Default scripts for (loaded and enabled by default):
+      - Base64 disclosure
+      - Email disclosure
+      - Error Application disclosure
+      - Private IP disclosure
+      - Credit Card disclosure
+      - Username disclosure
+      - Debug Error disclosure
+      - Suspicious XML Comments disclosure
+    - Help content for the default scripts.
+- Add stats for websocket frames sent and time taken for passive scanning.
+
+## [19] - 2019-06-07
+
 - Fix exceptions when handling/dispatching events.
 - Add wrapper to websocket API responses.
 - Fix exception when handling API request with no API implementor.
@@ -14,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Validate the Origin for API connections.
 - Generate websocket events.
 - Add break API endpoints.
+- Scale fonts and icons correctly
 
 ## 18 - 2018-08-01
 
@@ -118,3 +144,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 
+[20]: https://github.com/zaproxy/zap-extensions/releases/websocket-v20
+[19]: https://github.com/zaproxy/zap-extensions/releases/websocket-v19

@@ -1,19 +1,19 @@
 /*
  *
  * Paros and its related class files.
- * 
+ *
  * Paros is an HTTP/HTTPS proxy for assessing web application security.
  * Copyright (C) 2003-2004 Chinotec Technologies Company
- * 
+ *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the Clarified Artistic License
  * as published by the Free Software Foundation.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * Clarified Artistic License for more details.
- * 
+ *
  * You should have received a copy of the Clarified Artistic License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
@@ -28,6 +28,8 @@
 // ZAP: 2014/11/09 Issue 1396: Add min length check to reduce false positives
 // ZAP: 2015/09/23 Issue 1594: Change matching mechanism
 // ZAP: 2017/11/10 Remove N/A from alert parameter.
+// ZAP: 2019/05/08 Normalise format/indentation.
+// ZAP: 2019/07/11 Change URL regex to find unquoted URLs in HREFs/SRC tags.
 package org.zaproxy.zap.extension.pscanrules;
 
 import java.util.Collections;
@@ -36,9 +38,7 @@ import java.util.Locale;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
 import net.htmlparser.jericho.Source;
-
 import org.apache.commons.httpclient.URIException;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.scanner.Alert;
@@ -51,28 +51,25 @@ import org.zaproxy.zap.extension.pscan.PassiveScanThread;
 import org.zaproxy.zap.extension.pscan.PluginPassiveScanner;
 
 /**
- * Plugin refactored for URL ID session disclosure starting from the previous
- * Active plugin developed by Paros team
+ * Plugin refactored for URL ID session disclosure starting from the previous Active plugin
+ * developed by Paros team
  *
  * @author yhawke
  * @author kingthorin+owaspzap
- *
  */
 public class TestInfoSessionIdURL extends PluginPassiveScanner {
-	
-	/**
-	 * Prefix for internationalised messages used by this rule
-	 */
-	private static final String MESSAGE_PREFIX = "pscanrules.testinfosessionidurl.";
-	
-	private static final int SESSION_TOKEN_MIN_LENGTH = 8; 
-	
+
+    /** Prefix for internationalised messages used by this rule */
+    private static final String MESSAGE_PREFIX = "pscanrules.testinfosessionidurl.";
+
+    private static final int SESSION_TOKEN_MIN_LENGTH = 8;
+
     /*
-     * private static Pattern staticSessionCookieNamePHP = Pattern("PHPSESSID", PATTERN.PARAM);
-     * ASP = ASPSESSIONIDxxxxx=xxxxxx
-     * PHP = PHPSESSID
-     * Cold fusion = CFID, CFTOKEN	(firmed, checked with Macromedia)
-     * Java (tomcat, jrun, websphere, sunone, weblogic )= JSESSIONID=xxxxx
+     * This scanner looks for session ID tokens as defined in
+     * HttpSessionsParam.DEFAULT_TOKENS. They generally look like these: ASP =
+     * ASPSESSIONIDxxxxx=xxxxxx PHP = PHPSESSID Cold fusion = CFID, CFTOKEN
+     * (confirmed, checked with Macromedia) Java (tomcat, jrun, websphere, sunone,
+     * weblogic )= JSESSIONID=xxxxx
      *
      * List of session id available also on this site:
      * http://www.portent.com/blog/random/session-id-parameters-list.htm
@@ -98,19 +95,19 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
      */
     @Override
     public String getName() {
-    	return Constant.messages.getString(MESSAGE_PREFIX + "name");
+        return Constant.messages.getString(MESSAGE_PREFIX + "name");
     }
 
     private String getDescription() {
-    	return Constant.messages.getString(MESSAGE_PREFIX + "desc");
+        return Constant.messages.getString(MESSAGE_PREFIX + "desc");
     }
 
     private String getSolution() {
-    	return Constant.messages.getString(MESSAGE_PREFIX + "soln");
+        return Constant.messages.getString(MESSAGE_PREFIX + "soln");
     }
 
     private String getReference() {
-    	return Constant.messages.getString(MESSAGE_PREFIX + "refs");
+        return Constant.messages.getString(MESSAGE_PREFIX + "refs");
     }
 
     private int getRisk() {
@@ -127,7 +124,7 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
 
     /**
      * Set the Scanner thread parent object
-     * 
+     *
      * @param parent the PassiveScanThread parent object
      */
     @Override
@@ -137,19 +134,29 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
 
     /**
      * Scan the request. Currently it does nothing.
-     * 
+     *
      * @param msg the HTTP message
-     * @param id the id of the request
+     * @param id the id of the response
      */
     @Override
     public void scanHttpRequestSend(HttpMessage msg, int id) {
-        //do Nothing it's related to response managed
+        // do Nothing. All work currently is done in the scanHttpResponseReceive()
+        // method.
     }
 
+    private static final Pattern PATHSESSIONIDPATTERN =
+            Pattern.compile(
+                    "jsessionid=[\\dA-Z]{" + SESSION_TOKEN_MIN_LENGTH + ",}",
+                    Pattern.CASE_INSENSITIVE);
+
     /**
-     * Perform the passive scanning of URL based session IDs
-     * 
-     * @param msg the message that need to be checked
+     * Perform passive scanning for URL based session IDs in the HTTP request. TODO: This method
+     * should really scan the contents of the response to see if it is HTML, and if so, look for
+     * HREFs and SRC tags and check if the URLs in them contain session IDs. This would enable ZAP
+     * to detect Session IDs in URLs exactly where they are occurring, rather than simply detecting
+     * the symptom of the problem in URLs of requests.
+     *
+     * @param msg the message that needs to be checked
      * @param id the id of the session
      * @param source the source code of the response
      */
@@ -157,11 +164,10 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
     public void scanHttpResponseReceive(HttpMessage msg, int id, Source source) {
 
         TreeSet<HtmlParameter> urlParams = msg.getUrlParams();
-        
-        
+
         String uri = msg.getRequestHeader().getURI().toString();
         boolean found = false;
-        
+
         // The Session ID list from option param (panel)
         OptionsParam options = Model.getSingleton().getOptionsParam();
         HttpSessionsParam sessionOptions = options.getParamSet(HttpSessionsParam.class);
@@ -169,51 +175,59 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
         if (sessionOptions != null) {
             sessionIds = sessionOptions.getDefaultTokensEnabled();
         }
-	if(!urlParams.isEmpty()) {
-            for (HtmlParameter param: urlParams) { //Iterate through the parameters
-            	//If the parameter name is one of those on the Session Token list from the options panel
-            	if (sessionIds.contains(param.getName().toLowerCase(Locale.ROOT))) { 
-            		//If the param value length is greater than MIN_LENGTH (therefore there is a value)
-            		if (param.getValue().length() > SESSION_TOKEN_MIN_LENGTH) {
-    	                // Raise an alert according to Passive Scan Rule model
-    	                // description, uri, param, attack, otherInfo, 
-    	                // solution, reference, evidence, cweId, wascId, msg
-    	                Alert alert = new Alert(getPluginId(), getRisk(), Alert.CONFIDENCE_HIGH, getName());
-    	                alert.setDetail(
-    	                        getDescription(),
-    	                        uri,
-    	                        param.getName(), // param
-    	                        "", // attack
-    	                        "", // otherinfo
-    	                        getSolution(),
-    	                        getReference(),
-    	                        param.getValue(), // evidence
-    	                        getCweId(), // CWE Id
-    	                        getWascId(), // WASC Id - Info leakage
-    	                        msg);
-    	
-    	                parent.raiseAlert(id, alert);
-    	                // We don't break on this one.
-    	                // There shouldn't be more than one per URL but bizarre things do happen.
-    	                // Improbable doesn't mean impossible.
-    	                found = true;
-            		}
-            	}
+
+        if (!urlParams.isEmpty()) {
+            for (HtmlParameter param : urlParams) { // Iterate through the parameters
+                // If the parameter name is one of those on the Session Token list from the options
+                // panel
+                if (sessionIds.contains(param.getName().toLowerCase(Locale.ROOT))) {
+                    // If the param value length is greater than MIN_LENGTH (therefore there is a
+                    // value)
+                    if (param.getValue().length() > SESSION_TOKEN_MIN_LENGTH) {
+                        // Raise an alert according to Passive Scan Rule model
+                        // description, uri, param, attack, otherInfo,
+                        // solution, reference, evidence, cweId, wascId, msg
+                        Alert alert =
+                                new Alert(
+                                        getPluginId(), getRisk(), Alert.CONFIDENCE_HIGH, getName());
+                        alert.setDetail(
+                                getDescription(),
+                                uri,
+                                param.getName(), // param
+                                "", // attack
+                                "", // otherinfo
+                                getSolution(),
+                                getReference(),
+                                param.getValue(), // evidence
+                                getCweId(), // CWE Id
+                                getWascId(), // WASC Id - Info leakage
+                                msg);
+
+                        parent.raiseAlert(id, alert);
+                        // We don't break on this one.
+                        // There shouldn't be more than one per URL but bizarre things do happen.
+                        // Improbable doesn't mean impossible.
+                        found = true;
+                    }
+                }
             }
         }
+
         if (!found && msg.getRequestHeader().getURI().getEscapedPath() != null) {
-            //Handle jsessionid like: http://tld.gtld/fred;jsessionid=1A530637289A03B07199A44E8D531427?foo=bar
+            // Handle jsessionid like:
+            // http://tld.gtld/fred;jsessionid=1A530637289A03B07199A44E8D531427?foo=bar
             Matcher jsessMatcher = null;
             try {
-                jsessMatcher = Pattern.compile("jsessionid=[\\dA-Z]*", Pattern.CASE_INSENSITIVE).matcher(msg.getRequestHeader().getURI().getPath());
+                jsessMatcher =
+                        PATHSESSIONIDPATTERN.matcher(msg.getRequestHeader().getURI().getPath());
             } catch (URIException e) {
             }
-            if (jsessMatcher != null && jsessMatcher.find() && sessionIds.contains(jsessMatcher.group().split("=")[0].trim())) {
+            if (jsessMatcher != null && jsessMatcher.find()) {
                 Alert alert = new Alert(getPluginId(), getRisk(), Alert.CONFIDENCE_HIGH, getName());
                 alert.setDetail(
                         getDescription(),
                         uri,
-                       "", // param
+                        "", // param
                         "", // attack
                         "", // otherinfo
                         getSolution(),
@@ -222,22 +236,22 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
                         getCweId(), // CWE Id
                         getWascId(), // WASC Id - Info leakage
                         msg);
-            
+
                 parent.raiseAlert(id, alert);
                 found = true;
             }
         }
         if (found) {
-	        // Now try to check if there exists a referer inside the content
-            // i.e.: There is an external link for which 
+            // Now try to check if there exists a referer inside the content
+            // i.e.: There is an external link for which
             // a referer header would be passed including this session token
             try {
-                checkSessionIDExposure(msg, id);
+                checkSessionIDExposureTo3rdParty(msg, id);
             } catch (URIException e) {
             }
         }
     }
-    
+
     // External link Response finder regex
     // HTML is very simple because only src/href exists
     // DOM based is very complex because you can have all these possibilities:
@@ -245,45 +259,47 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
     // window.location='url
     // location.href='url
     // document.location='url
-    // and also internal variables containing urls that can be
+    // and also internal variables containing URLs that can be
     // also dynamically composed along page execution
     // so we search only for pattern like these:
     // ='url or ('url because it's suitable to all the previous possibilities
-    // and we check for no quoted urls only if href or src
+    // and we check for unquoted URLs only if href or src
     // ---------------------------------
     private static final String EXT_LINK = "https?://([\\w\\.\\-_]+)";
     private static final Pattern[] EXT_LINK_PATTERNS = {
-        //Pattern.compile("src\\s*=\\s*\"?" + EXT_LINK, Pattern.CASE_INSENSITIVE),
-        //Pattern.compile("href\\s*=\\s*\"?" + EXT_LINK, Pattern.CASE_INSENSITIVE),
-        Pattern.compile("src\\s*=\\s*[\"']" + EXT_LINK, Pattern.CASE_INSENSITIVE),
-        Pattern.compile("href\\s*=\\s*[\"']" + EXT_LINK, Pattern.CASE_INSENSITIVE),
+        Pattern.compile("src\\s*=\\s*[\"']?" + EXT_LINK, Pattern.CASE_INSENSITIVE),
+        Pattern.compile("href\\s*=\\s*[\"']?" + EXT_LINK, Pattern.CASE_INSENSITIVE),
+        // This regex looks for DOM URLs (per above)
         Pattern.compile("[=\\(]\\s*[\"']" + EXT_LINK, Pattern.CASE_INSENSITIVE)
     };
 
     // The name of this sub-alert
     private String getRefererAlert() {
-    	return Constant.messages.getString(MESSAGE_PREFIX + "referrer.alert");
+        return Constant.messages.getString(MESSAGE_PREFIX + "referrer.alert");
     }
 
     // The description of this sub-alert
     private String getRefererDescription() {
-    	return Constant.messages.getString(MESSAGE_PREFIX + "referrer.desc");
+        return Constant.messages.getString(MESSAGE_PREFIX + "referrer.desc");
     }
 
     // The solution of this sub-alert
     private String getRefererSolution() {
-    	return Constant.messages.getString(MESSAGE_PREFIX + "referrer.soln");
+        return Constant.messages.getString(MESSAGE_PREFIX + "referrer.soln");
     }
 
     /**
-     * Check if an external link is present inside a vulnerable url
+     * Checks if the session ID in the URL might be exposed to 3rd-parties via a link to that 3rd
+     * party in the response body. For example: <a href="http://other.domain.tld/">link</a>. The
+     * referer header value sent to the 3rd party will include the URL with the included session ID.
+     * This method should only be invoked if the requesting URL includes a session ID.
      *
-     * @param msg the message that need to be checked
+     * @param msg the message that needs to be checked
      * @param id the id of the session
-     * @throws URIException if there're some trouble with the Request
+     * @throws URIException if there's some trouble with the Request
      */
-    private void checkSessionIDExposure(HttpMessage msg, int id) throws URIException {
-        //Vector<String> referrer = msg.getRequestHeader().getHeaders(HttpHeader.REFERER);
+    private void checkSessionIDExposureTo3rdParty(HttpMessage msg, int id) throws URIException {
+
         int risk = (msg.getRequestHeader().isSecure()) ? Alert.RISK_MEDIUM : Alert.RISK_LOW;
         String body = msg.getResponseBody().toString();
         String host = msg.getRequestHeader().getURI().getHost();
@@ -298,14 +314,19 @@ public class TestInfoSessionIdURL extends PluginPassiveScanner {
                 if (host.compareToIgnoreCase(linkHostName) != 0) {
 
                     // Raise an alert according to Passive Scan Rule model
-                    // description, uri, param, attack, otherInfo, 
+                    // description, uri, param, attack, otherInfo,
                     // solution, reference, evidence, cweId, wascId, msg
-                    Alert alert = new Alert(getPluginId(), risk, Alert.CONFIDENCE_MEDIUM, getRefererAlert());
+                    Alert alert =
+                            new Alert(
+                                    getPluginId(),
+                                    risk,
+                                    Alert.CONFIDENCE_MEDIUM,
+                                    getRefererAlert());
                     alert.setDetail(
                             getRefererDescription(),
                             msg.getRequestHeader().getURI().getURI(),
                             "",
-                            linkHostName,
+                            "",
                             "",
                             getRefererSolution(),
                             getReference(),

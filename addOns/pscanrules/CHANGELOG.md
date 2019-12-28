@@ -5,11 +5,41 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Changed
+- "Cookie HttpOnly", "Cookie Secure Flag", and "Cookie Without SameSite Attribute" scan rules no longer alert on expired (deleted) cookies (Issue 5295).
+
+## [25] - 2019-12-16
+
+### Changed
+- Content Security Policy scan rule: Update to Salvation 2.7.0, add handling for script-src-elem, script-src-attr, style-src-elem, and style-src-attr (Issue 5459).
+- Minimum ZAP version is now 2.8.0.
+
+### Added
+- The following scan rules were added, promoted from Beta to Release:
+  - Cookie Without SameSite Attribute
+  - Cross Domain Misconfiguration
+  - Information Disclosure: In URL
+  - Information Disclosure: Referrer
+  - Information Disclosure: Suspicious Comments
+  - Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)
+  - Timestamp Disclosure
+  - Username Hash Found
+  - X-AspNet-Version Response Header Scanner
+  - X-Debug-Token Information Leak
+
+## [24] - 2019-06-07
+
 - Maintenance changes.
 - Migrate CSP Scanner into the main passive scan release package (promoting it to Release). Upgrade Salvation (dependency) to 2.6.0.
 - Application Error scanner change for HTTP 500. Alert changed to low risk for HTTP 500, and not raised at all when Threshold is High.  
 - Updated the reference link for the alert: Web Browser XSS Protection Not Enabled.
 - Promote Charset Mismatch Scanner to release (Issue 4460).
+- Promote ViewState Scanner to release (Issue 4453).
+- Promote Insecure JSF ViewState Scanner to release (Issue 4455).
+- Promote Insecure Authentication Scanner to release (Issue 4456).
+- Promote Information Disclosure Debug Errors Scanner to release (Issue 4457).
+- Promote CSRF Countermeasures Scanner to release (Issue 4458).
+- Promote Cookie Loosely Scoped Scanner to release (Issue 4459).
 
 ## 23 - 2018-08-15
 
@@ -120,3 +150,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 
 
+[25]: https://github.com/zaproxy/zap-extensions/releases/pscanrules-v25
+[24]: https://github.com/zaproxy/zap-extensions/releases/pscanrules-v24

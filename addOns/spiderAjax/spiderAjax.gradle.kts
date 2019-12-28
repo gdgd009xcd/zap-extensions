@@ -1,12 +1,16 @@
 import org.zaproxy.gradle.addon.AddOnStatus
 
-version = "23.0.0"
+version = "23.1.0"
 description = "Allows you to spider sites that make heavy use of JavaScript using Crawljax"
+
+repositories {
+    maven(url = uri("https://oss.sonatype.org/content/repositories/snapshots/"))
+}
 
 zapAddOn {
     addOnName.set("Ajax Spider")
     addOnStatus.set(AddOnStatus.RELEASE)
-    zapVersion.set("2.7.0")
+    zapVersion.set("2.8.0")
 
     manifest {
         author.set("ZAP Dev Team")
@@ -14,16 +18,25 @@ zapAddOn {
         dependencies {
             addOns {
                 register("selenium") {
-                    semVer.set("2.*")
+                    version.set("15.*")
                 }
             }
         }
     }
 
+    val apiGenClasspath = configurations.detachedConfiguration(
+        dependencies.create("org.zaproxy:zap:2.8.0"),
+        dependencies.create(parent!!.childProjects.get("selenium")!!)
+    )
+
     apiClientGen {
         api.set("org.zaproxy.zap.extension.spiderAjax.AjaxSpiderAPI")
         options.set("org.zaproxy.zap.extension.spiderAjax.AjaxSpiderParam")
         messages.set(file("src/main/resources/org/zaproxy/zap/extension/spiderAjax/resources/Messages.properties"))
+        classpath.run {
+            setFrom(apiGenClasspath)
+            from(tasks.named(JavaPlugin.JAR_TASK_NAME))
+        }
     }
 }
 

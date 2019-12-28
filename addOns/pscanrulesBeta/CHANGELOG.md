@@ -5,10 +5,70 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+
+## [21] - 2019-12-16
+
+### Added
+- The following scan rules were added being promoted from Alpha to Beta:
+  - Big Redirect Detected (Potential Sensitive Information Leak)
+  - Content Security Policy (CSP) Header Not Set
+  - Cookie Poisoning
+  - Directory Browsing
+  - Hash Disclosure
+  - Heartbleed OpenSSL Vulnerability (Indicative)
+  - HTTP Server Response Header Scanner
+  - HTTP to HTTPS Insecure Transition in Form Post
+  - HTTPS to HTTP Insecure Transition in Form Post
+  - Open Redirect
+  - PII Scanner
+  - Retrieved from Cache
+  - Reverse Tabnabbing
+  - Strict-Transport-Security Header Scanner
+  - User Controllable Charset
+  - User Controllable HTML Element Attribute (Potential XSS)
+  - User Controllable JavaScript Event (XSS)
+  - X-Backend-Server Header Information Leak
+  - X-ChromeLogger-Data (XCOLD) Header Information Leak
+
+### Removed
+- The following scan rules were removed in being promoted Beta to Release:
+  - Cookie Without SameSite Attribute
+  - Cross Domain Misconfiguration
+  - Information Disclosure: In URL
+  - Information Disclosure: Referrer
+  - Information Disclosure: Suspicious Comments
+  - Server Leaks Information via "X-Powered-By" HTTP Response Header Field(s)
+  - Timestamp Disclosure
+  - Username Hash Found
+  - X-AspNet-Version Response Header Scanner
+  - X-Debug-Token Information Leak
+
+## [20] - 2019-11-19
+
+### Changed
+- Tweak Information Disclosure - Suspicious Comments scanner to ignore whitespace before/after suspicious comments terms in the suspicious-comments.txt config file.
+- Only scan for Servlet Parameter Pollution at LOW threshold (part of Issue 4454).
+- Username IDOR scan rule now supports use of the Custom Payload addon.
+
+## [19] - 2019-06-07
+
 - Fix typo and correct term in help page.
 - Fix typo in scanner name.
 - Tweak alert Authentication Credentials Captured to use Description field instead of Attack.
 - Remove Charset Mismatch Scanner (promoted to release Issue 4460).
+- Remove ViewState Scanner (promoted to release Issue 4453).
+- Remove Insecure JSF ViewState Scanner (promoted to release Issue 4455).
+- Remove Insecure Authentication Scanner (promoted to release Issue 4456).
+- Remove Information Disclosure Debug Errors Scanner (promoted to release Issue 4457).
+- Remove CSRF Countermeasures Scanner (promoted to release Issue 4458).
+- Remove Cookie Loosely Scoped Scanner (promoted to release Issue 4459).
+- Promote Cookie Same Site Scanner to Beta (Issue 4464).
+- Promote Cross Domain Misconfiguration Scanner to Beta (Issue 4465).
+- Promote Timestamp Scanner to Beta (Issue 4466).
+- Promote Username IDOR Scanner to Beta (Issue 4467).
+- Promote X AspNet Version Scanner to Beta (Issue 4468).
+- Promote X Debug Token Scanner to Beta (Issue 4469).
+- Promote X PoweredBy Scanner to Beta (Issue 4470).
 
 ## 18 - 2018-01-19
 
@@ -88,3 +148,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Updated to support new addon format
 
+[21]: https://github.com/zaproxy/zap-extensions/releases/pscanrulesBeta-v21
+[20]: https://github.com/zaproxy/zap-extensions/releases/pscanrulesBeta-v20
+[19]: https://github.com/zaproxy/zap-extensions/releases/pscanrulesBeta-v19

@@ -3,13 +3,13 @@
  *
  * ZAP is an HTTP/HTTPS proxy for assessing web application security.
  *
- * Copyright 2016 The ZAP development team
+ * Copyright 2016 The ZAP Development Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -25,9 +25,12 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import fi.iki.elonen.NanoHTTPD.IHTTPSession;
+import fi.iki.elonen.NanoHTTPD.Response;
+import org.apache.commons.text.StringEscapeUtils;
 import org.junit.Test;
 import org.parosproxy.paros.core.scanner.Alert;
+import org.parosproxy.paros.core.scanner.Plugin.AlertThreshold;
 import org.parosproxy.paros.core.scanner.Plugin.AttackStrength;
 import org.parosproxy.paros.network.HttpHeader;
 import org.parosproxy.paros.network.HttpMessage;
@@ -36,15 +39,12 @@ import org.zaproxy.zap.model.TechSet;
 import org.zaproxy.zap.testutils.NanoServerHandler;
 import org.zaproxy.zap.utils.ZapXmlConfiguration;
 
-import fi.iki.elonen.NanoHTTPD.IHTTPSession;
-import fi.iki.elonen.NanoHTTPD.Response;
+/** Unit test for {@link SourceCodeDisclosureCVE20121823}. */
+public class SourceCodeDisclosureCVE20121823UnitTest
+        extends ActiveScannerTest<SourceCodeDisclosureCVE20121823> {
 
-/**
- * Unit test for {@link SourceCodeDisclosureCVE20121823}.
- */
-public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<SourceCodeDisclosureCVE20121823> {
-
-    private static final String RESPONSE_HEADER_404_NOT_FOUND = "HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n";
+    private static final String RESPONSE_HEADER_404_NOT_FOUND =
+            "HTTP/1.1 404 Not Found\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\n\r\n";
     private static final String PHP_SOURCE_TAGS = "<?php $x=0; echo '<h1>Welcome!</h1>'; ?>";
     private static final String PHP_SOURCE_ECHO_TAG = "<?= '<h1>Welcome!</h1>' ?>";
 
@@ -138,13 +138,14 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
     @Test
     public void shouldScanUrlsWithoutPath() throws Exception {
         // Given
-        nano.addHandler(new NanoServerHandler("shouldScanUrlsWithoutPath") {
+        nano.addHandler(
+                new NanoServerHandler("shouldScanUrlsWithoutPath") {
 
-            @Override
-            protected Response serve(IHTTPSession session) {
-                return newFixedLengthResponse("No Source Code here!");
-            }
-        });
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        return newFixedLengthResponse("No Source Code here!");
+                    }
+                });
         HttpMessage message = getHttpMessage("");
         rule.init(message, parent);
         // When
@@ -157,13 +158,14 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
     public void shouldScanUrlsWithEncodedCharsInPath() throws Exception {
         // Given
         String test = "/shouldScanUrlsWithEncodedCharsInPath/";
-        nano.addHandler(new NanoServerHandler(test) {
+        nano.addHandler(
+                new NanoServerHandler(test) {
 
-            @Override
-            protected Response serve(IHTTPSession session) {
-                return newFixedLengthResponse("No Source Code here!");
-            }
-        });
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        return newFixedLengthResponse("No Source Code here!");
+                    }
+                });
         HttpMessage message = getHttpMessage(test + "%7B+%25%24");
         rule.init(message, parent);
         // When
@@ -176,13 +178,14 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
     public void shouldNotAlertIfThereIsNoSourceCodeDisclosure() throws Exception {
         // Given
         String test = "/shouldNotAlertIfThereIsNoSourceCodeDisclosure/";
-        nano.addHandler(new NanoServerHandler(test) {
+        nano.addHandler(
+                new NanoServerHandler(test) {
 
-            @Override
-            protected Response serve(IHTTPSession session) {
-                return newFixedLengthResponse("No Source Code here!");
-            }
-        });
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        return newFixedLengthResponse("No Source Code here!");
+                    }
+                });
         HttpMessage message = getHttpMessage(test);
         rule.init(message, parent);
         // When
@@ -195,14 +198,16 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
     public void shouldAlertIfPhpSourceTagsWereDisclosedInResponseBody() throws Exception {
         // Given
         String test = "/shouldAlertIfPhpSourceTagsWereDisclosedInResponseBody/";
-        nano.addHandler(new NanoServerHandler(test) {
+        nano.addHandler(
+                new NanoServerHandler(test) {
 
-            @Override
-            protected Response serve(IHTTPSession session) {
-                String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_TAGS);
-                return newFixedLengthResponse("<html><body>" + encodedPhpCode + "</body></html>");
-            }
-        });
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_TAGS);
+                        return newFixedLengthResponse(
+                                "<html><body>" + encodedPhpCode + "</body></html>");
+                    }
+                });
         HttpMessage message = getHttpMessage(test);
         rule.init(message, parent);
         // When
@@ -218,20 +223,24 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
     }
 
     @Test
-    public void shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpSourceTagsWereDisclosedInResponseBody() throws Exception {
+    public void
+            shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpSourceTagsWereDisclosedInResponseBody()
+                    throws Exception {
         // Given
-        String test = "/shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpSourceTagsWereDisclosedInResponseBody/";
-        nano.addHandler(new NanoServerHandler(test) {
+        String test =
+                "/shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpSourceTagsWereDisclosedInResponseBody/";
+        nano.addHandler(
+                new NanoServerHandler(test) {
 
-            @Override
-            protected Response serve(IHTTPSession session) {
-                String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_TAGS);
-                return newFixedLengthResponse(
-                        Response.Status.INTERNAL_ERROR,
-                        "text/html",
-                        "<html><body>" + encodedPhpCode + "</body></html>");
-            }
-        });
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_TAGS);
+                        return newFixedLengthResponse(
+                                Response.Status.INTERNAL_ERROR,
+                                "text/html",
+                                "<html><body>" + encodedPhpCode + "</body></html>");
+                    }
+                });
         HttpMessage message = getHttpMessage(test);
         rule.init(message, parent);
         // When
@@ -245,14 +254,16 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
     public void shouldAlertIfPhpEchoTagsWereDisclosedInResponseBody() throws Exception {
         // Given
         String test = "/shouldAlertIfPhpEchoTagsWereDisclosedInResponseBody/";
-        nano.addHandler(new NanoServerHandler(test) {
+        nano.addHandler(
+                new NanoServerHandler(test) {
 
-            @Override
-            protected Response serve(IHTTPSession session) {
-                String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_ECHO_TAG);
-                return newFixedLengthResponse("<html><body>" + encodedPhpCode + "</body></html>");
-            }
-        });
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_ECHO_TAG);
+                        return newFixedLengthResponse(
+                                "<html><body>" + encodedPhpCode + "</body></html>");
+                    }
+                });
         HttpMessage message = getHttpMessage(test);
         rule.init(message, parent);
         // When
@@ -268,20 +279,24 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
     }
 
     @Test
-    public void shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpEchoTagsWereDisclosedInResponseBody() throws Exception {
+    public void
+            shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpEchoTagsWereDisclosedInResponseBody()
+                    throws Exception {
         // Given
-        String test = "/shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpEchoTagsWereDisclosedInResponseBody/";
-        nano.addHandler(new NanoServerHandler(test) {
+        String test =
+                "/shouldNotAlertIfResponseIsNotSuccessfulEvenIfPhpEchoTagsWereDisclosedInResponseBody/";
+        nano.addHandler(
+                new NanoServerHandler(test) {
 
-            @Override
-            protected Response serve(IHTTPSession session) {
-                String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_ECHO_TAG);
-                return newFixedLengthResponse(
-                        Response.Status.INTERNAL_ERROR,
-                        "text/html",
-                        "<html><body>" + encodedPhpCode + "</body></html>");
-            }
-        });
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_ECHO_TAG);
+                        return newFixedLengthResponse(
+                                Response.Status.INTERNAL_ERROR,
+                                "text/html",
+                                "<html><body>" + encodedPhpCode + "</body></html>");
+                    }
+                });
         HttpMessage message = getHttpMessage(test);
         rule.init(message, parent);
         // When
@@ -289,6 +304,64 @@ public class SourceCodeDisclosureCVE20121823UnitTest extends ActiveScannerTest<S
         // Then
         assertThat(httpMessagesSent, hasSize(1));
         assertThat(alertsRaised, hasSize(0));
+    }
+
+    @Test
+    public void shouldNotAlertIfJavaScriptFilesAtDefaultThreshold() throws Exception {
+        // Given
+        String test = "/shouldNotAlertIfJavaScriptFilesAtDefaultThreshold/";
+        nano.addHandler(
+                new NanoServerHandler(test) {
+
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_ECHO_TAG);
+                        Response response =
+                                newFixedLengthResponse(
+                                        Response.Status.OK,
+                                        "text/javascript",
+                                        "/* javascript comment blah blah " + encodedPhpCode + "*/");
+                        response.addHeader("Content-Type", "text/javascript");
+                        return response;
+                    }
+                });
+        HttpMessage message = getHttpMessage(test, "text/javascript");
+        rule.init(message, parent);
+        // When
+        rule.scan();
+        // Then
+        assertThat(alertsRaised, hasSize(0));
+    }
+
+    @Test
+    public void shouldAlertIfJavaScriptFilesAtLowThreshold() throws Exception {
+        // Given
+        String test = "/shouldAlertIfJavaScriptFilesAtLowThreshold/";
+        nano.addHandler(
+                new NanoServerHandler(test) {
+
+                    @Override
+                    protected Response serve(IHTTPSession session) {
+                        String encodedPhpCode = StringEscapeUtils.escapeHtml4(PHP_SOURCE_ECHO_TAG);
+                        return newFixedLengthResponse(
+                                Response.Status.OK,
+                                "text/javascript",
+                                "/* javascript comment blah blah " + encodedPhpCode + "*/");
+                    }
+                });
+        HttpMessage message = getHttpMessage(test, "text/javascript");
+        rule.init(message, parent);
+        rule.setAlertThreshold(AlertThreshold.LOW);
+        // When
+        rule.scan();
+        // Then
+        assertThat(alertsRaised, hasSize(1));
+        assertThat(alertsRaised.get(0).getEvidence(), is(equalTo("")));
+        assertThat(alertsRaised.get(0).getParam(), is(equalTo("")));
+        assertThat(alertsRaised.get(0).getAttack(), is(equalTo("")));
+        assertThat(alertsRaised.get(0).getRisk(), is(equalTo(Alert.RISK_HIGH)));
+        assertThat(alertsRaised.get(0).getConfidence(), is(equalTo(Alert.CONFIDENCE_MEDIUM)));
+        assertThat(alertsRaised.get(0).getOtherInfo(), is(equalTo(PHP_SOURCE_ECHO_TAG)));
     }
 
     private HttpMessage httpMessage404NotFound() throws Exception {

@@ -3,13 +3,13 @@
  *
  * ZAP is an HTTP/HTTPS proxy for assessing web application security.
  *
- * Copyright 2016 The ZAP development team
+ * Copyright 2016 The ZAP Development Team
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,10 +19,17 @@
  */
 package org.zaproxy.zap.extension.ascanrulesBeta;
 
+import net.htmlparser.jericho.Config;
 import org.parosproxy.paros.core.scanner.AbstractPlugin;
+import org.zaproxy.zap.ZAP;
 import org.zaproxy.zap.testutils.ActiveScannerTestUtils;
 
-public abstract class ActiveScannerTest<T extends AbstractPlugin> extends ActiveScannerTestUtils<T> {
+public abstract class ActiveScannerTest<T extends AbstractPlugin>
+        extends ActiveScannerTestUtils<T> {
+
+    static {
+        Config.LoggerProvider = ZAP.JERICHO_LOGGER_PROVIDER;
+    }
 
     @Override
     protected void setUpMessages() {

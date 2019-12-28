@@ -5,7 +5,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+- Maintenance changes.
 
+## [9] - 2019-06-12
+### Fixed
+- Use default browser when no browser is specified in the configuration rule.
+
+## [8] - 2019-06-07
+### Changed
+- Run with Firefox headless by default (Issue 3866).
+- Depend on newer version of Selenium add-on.
 
 ## 7 - 2018-03-07
 
@@ -36,4 +45,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 ## 1 - 2015-08-24
 
 
-
+[9]: https://github.com/zaproxy/zap-extensions/releases/domxss-v9
+[8]: https://github.com/zaproxy/zap-extensions/releases/domxss-v8

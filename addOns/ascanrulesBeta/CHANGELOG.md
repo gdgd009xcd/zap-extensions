@@ -5,8 +5,49 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+
+## [27] - 2019-12-16
+
+### Added
+- The following scan rules were promoted from Alpha to Beta:
+  - Apache Range Header DoS
+  - Cookie Slack Detector
+  - ELMAH Information Leak
+  - GET for POST
+  - .htaccess Information Leak
+  - HTTP Only Site
+  - Httpoxy - Proxy Header Misuse
+  - HTTPS Content Available via HTTP
+  - Proxy Disclosure
+  - Relative Path Confusion
+  - Source Code Disclosure - File Inclusion
+  - Source Code Disclosure - Git
+  - SQL Injection - MsSQL
+  - SQL Injection - SQLite
+  - Trace.axd Information Leak
+  - User Agent Fuzzer
+
+### Changed
+- Add dependency on Custom Payloads add-on.
+- Fixed ArrayIndexOutOfBoundsException issue in XML External Entity Attack scan rule.
+  - Now removes original XML header in "Local File Reflection Attack".
+- Maintenance changes.
+- Update minimum ZAP version to 2.8.0.
+- Elmah scan rule updated to include a response content check, and vary alert confidence values accordingly.
+
+## [26] - 2019-07-11
+
+- Fix FP in "Source Code Disclosure SVN" where the contents exactly matches, and only report issues with less evidence at a LOW threshold.
+- Fix NPE in "Session Fixation" scan rule when the path of the request URI is null.
+- Changed "Source Code Disclosure CVE20121823" to only analyze JS responses when a LOW alert threshold is used.
+
+## [25] - 2019-06-07
+
 - Correct HTTP message usage in Insecure HTTP Method scanner.
 - Fix missing resource messages with Cross-Domain Misconfiguration scanner.
+- Remove Source Code Disclosure WEB-INF Scanner (promoted to release Issue 4448).
+- Report source code disclosure alerts at Medium instead of High 
+- Bundle Diff Utils library instead of relying on core.
 
 ## 24 - 2018-07-31
 
@@ -153,3 +194,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Updated to support new addon format
 
+[27]: https://github.com/zaproxy/zap-extensions/releases/ascanrulesBeta-v27
+[26]: https://github.com/zaproxy/zap-extensions/releases/ascanrulesBeta-v26
+[25]: https://github.com/zaproxy/zap-extensions/releases/ascanrulesBeta-v25

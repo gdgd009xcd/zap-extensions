@@ -1,36 +1,36 @@
 /*
  * Zed Attack Proxy (ZAP) and its related class files.
- * 
+ *
  * ZAP is an HTTP/HTTPS proxy for assessing web application security.
- * 
+ *
  * Copyright 2017 The ZAP Development Team
- *  
- * Licensed under the Apache License, Version 2.0 (the "License"); 
- * you may not use this file except in compliance with the License. 
- * You may obtain a copy of the License at 
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0 
- *   
- * Unless required by applicable law or agreed to in writing, software 
- * distributed under the License is distributed on an "AS IS" BASIS, 
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
- * See the License for the specific language governing permissions and 
- * limitations under the License. 
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.zaproxy.zap.extension.openapi;
 
 import java.io.File;
 import java.util.List;
-
+import net.sf.json.JSONObject;
 import org.apache.commons.httpclient.URI;
+import org.apache.commons.httpclient.URIException;
 import org.zaproxy.zap.extension.api.ApiAction;
 import org.zaproxy.zap.extension.api.ApiException;
 import org.zaproxy.zap.extension.api.ApiImplementor;
 import org.zaproxy.zap.extension.api.ApiResponse;
 import org.zaproxy.zap.extension.api.ApiResponseElement;
 import org.zaproxy.zap.extension.api.ApiResponseList;
-
-import net.sf.json.JSONObject;
+import org.zaproxy.zap.extension.openapi.converter.swagger.InvalidUrlException;
 
 public class OpenApiAPI extends ApiImplementor {
 
@@ -39,20 +39,28 @@ public class OpenApiAPI extends ApiImplementor {
     private static final String ACTION_IMPORT_URL = "importUrl";
     private static final String PARAM_URL = "url";
     private static final String PARAM_FILE = "file";
+    private static final String PARAM_TARGET = "target";
+
     private static final String PARAM_HOST_OVERRIDE = "hostOverride";
     private ExtensionOpenApi extension = null;
 
-    /**
-     * Provided only for API client generator usage.
-     */
+    /** Provided only for API client generator usage. */
     public OpenApiAPI() {
         this(null);
     }
 
     public OpenApiAPI(ExtensionOpenApi ext) {
         extension = ext;
-        this.addApiAction(new ApiAction(ACTION_IMPORT_FILE, new String[] { PARAM_FILE }));
-        this.addApiAction(new ApiAction(ACTION_IMPORT_URL, new String[] { PARAM_URL }, new String[] { PARAM_HOST_OVERRIDE }));
+        this.addApiAction(
+                new ApiAction(
+                        ACTION_IMPORT_FILE,
+                        new String[] {PARAM_FILE},
+                        new String[] {PARAM_TARGET}));
+        this.addApiAction(
+                new ApiAction(
+                        ACTION_IMPORT_URL,
+                        new String[] {PARAM_URL},
+                        new String[] {PARAM_HOST_OVERRIDE}));
     }
 
     @Override
@@ -71,8 +79,13 @@ public class OpenApiAPI extends ApiImplementor {
             if (!file.isFile()) {
                 throw new ApiException(ApiException.Type.ILLEGAL_PARAMETER, PARAM_FILE);
             }
-
-            List<String> errors = extension.importOpenApiDefinition(file, false);
+            List<String> errors;
+            String target = params.optString(PARAM_TARGET, "");
+            try {
+                errors = extension.importOpenApiDefinition(file, target, false);
+            } catch (InvalidUrlException e) {
+                throw new ApiException(ApiException.Type.ILLEGAL_PARAMETER, PARAM_TARGET);
+            }
 
             if (errors == null) {
                 // A null list indicates that an exception occurred while parsing the file...
@@ -90,31 +103,25 @@ public class OpenApiAPI extends ApiImplementor {
 
             try {
                 String override = params.optString(PARAM_HOST_OVERRIDE, "");
-                if (override.length() > 0) {
-                    // Check the siteOverride looks ok
-                    try {
-                        new URI("http://" + override, true);
-                    } catch (Exception e1) {
-                        throw new ApiException(ApiException.Type.ILLEGAL_PARAMETER, PARAM_HOST_OVERRIDE);
-                    }
-                }
-                
-                List<String> errors = extension.importOpenApiDefinition(new URI(params.getString(PARAM_URL), false),
-                        override, false);
-                
+
+                List<String> errors =
+                        extension.importOpenApiDefinition(
+                                new URI(params.getString(PARAM_URL), false), override, false);
+
                 ApiResponseList result = new ApiResponseList(name);
                 for (String error : errors) {
                     result.addItem(new ApiResponseElement("warning", error));
                 }
 
                 return result;
-            } catch (Exception e) {
+            } catch (URIException e) {
                 throw new ApiException(ApiException.Type.ILLEGAL_PARAMETER, PARAM_URL);
+            } catch (InvalidUrlException e) {
+                throw new ApiException(ApiException.Type.ILLEGAL_PARAMETER, PARAM_HOST_OVERRIDE);
             }
 
         } else {
             throw new ApiException(ApiException.Type.BAD_ACTION);
         }
     }
-
 }

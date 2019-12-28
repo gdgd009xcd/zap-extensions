@@ -1,12 +1,21 @@
 # Changelog
 All notable changes to this add-on will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
 
+- Update Selenium to version 3.141.59.
+
+## [15.0.0] - 2019-06-07
+
 - Remove support for Internet Explorer, does not support required capabilities.
 - Quit corresponding WebDrivers when removing WebDriver provider.
+- Enable ServiceWorker on launched Firefox browsers.
+- Ensure "localhost" is proxied through ZAP on Firefox >= 67.
+- Allow to start Chrome and Firefox in headless mode (Issue 3866).
+- Start using Semantic Versioning.
 
 ## 14 - 2019-01-31
 
@@ -75,3 +84,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 - Updated to Selenium 2.45 and moved to release
 
+[15.0.0]: https://github.com/zaproxy/zap-extensions/releases/selenium-v15.0.0
