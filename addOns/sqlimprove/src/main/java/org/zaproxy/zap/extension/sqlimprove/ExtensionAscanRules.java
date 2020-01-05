@@ -44,7 +44,7 @@ public class ExtensionAscanRules extends ExtensionAdaptor {
 
 	@Override
 	public String getDescription() {
-		return Constant.messages.getString("ascanrules.desc");
+		return Constant.messages.getString("sqlimprove.desc");
 	}
 	
 	@Override

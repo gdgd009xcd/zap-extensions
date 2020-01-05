@@ -47,6 +47,7 @@ import org.zaproxy.zap.model.TechSet;
 import difflib.Delta;
 import difflib.DiffUtils;
 import difflib.Patch;
+import org.apache.log4j.Level;
 
 /**
  * TODO: implement stacked query check, since it is actually supported on more
@@ -1211,7 +1212,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 								tempDiff.append("Output for Unmodified parameter: " + delta.getOriginal() + "\n");
 								tempDiff.append("Output for   modified parameter: " + delta.getRevised() + "\n");
 							}
-							log.debug("DIFFS: " + tempDiff);
+                                                        if(log.isTraceEnabled()){
+                                                            log.debug("DIFFS: " + tempDiff);
+                                                        }
 						}
 					}
 				//bale out if we were asked nicely
@@ -1902,7 +1905,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 				tempDiff.append("origin param: " + delta.getOriginal() + "\n");
 				tempDiff.append("revise param: " + delta.getRevised() + "\n");
 			}
-			log.debug("DIFFS: " + tempDiff);
+                        if(log.isTraceEnabled()){
+                            log.debug("DIFFS: " + tempDiff);
+                        }
 		}
 		
 	}
