@@ -21,7 +21,6 @@ package org.zaproxy.zap.extension.pscanrules;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 import net.htmlparser.jericho.Source;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.scanner.Alert;
@@ -38,8 +37,6 @@ public class XAspNetVersionScanner extends PluginPassiveScanner {
     /** Prefix for internationalised messages used by this rule */
     private static final String MESSAGE_PREFIX = "pscanrules.xaspnetversioncanner.";
 
-    private PassiveScanThread parent = null;
-
     private final List<String> xAspNetHeaders = new ArrayList<String>();
 
     public XAspNetVersionScanner() {
@@ -49,7 +46,7 @@ public class XAspNetVersionScanner extends PluginPassiveScanner {
 
     @Override
     public void setParent(PassiveScanThread parent) {
-        this.parent = parent;
+        // Nothing to do.
     }
 
     @Override
@@ -58,30 +55,27 @@ public class XAspNetVersionScanner extends PluginPassiveScanner {
     @Override
     public void scanHttpResponseReceive(HttpMessage msg, int id, Source source) {
         for (String header : xAspNetHeaders) {
-            Vector<String> found = msg.getResponseHeader().getHeaders(header);
+            List<String> found = msg.getResponseHeader().getHeaderValues(header);
 
-            if (found != null) {
-                this.raiseAlert(msg, id, found.firstElement());
+            if (!found.isEmpty()) {
+                this.raiseAlert(msg, id, found.get(0));
             }
         }
     }
 
     private void raiseAlert(HttpMessage msg, int id, String evidence) {
-        Alert alert = new Alert(getPluginId(), Alert.RISK_LOW, Alert.CONFIDENCE_HIGH, getName());
-        alert.setDetail(
-                Constant.messages.getString(MESSAGE_PREFIX + "desc"),
-                msg.getRequestHeader().getURI().toString(),
-                "", // parameter
-                "", // attack
-                Constant.messages.getString(MESSAGE_PREFIX + "extrainfo"), // other info
-                Constant.messages.getString(MESSAGE_PREFIX + "soln"), // solution
-                Constant.messages.getString(MESSAGE_PREFIX + "refs"), // refs
-                evidence, // evidence, if any
-                933, // CWE-933: OWASP Top Ten 2013 Category A5 - Security Misconfiguration
-                14, // WASC-14: Server Misconfiguration
-                msg);
-
-        parent.raiseAlert(id, alert);
+        newAlert()
+                .setRisk(Alert.RISK_LOW)
+                .setConfidence(Alert.CONFIDENCE_HIGH)
+                .setDescription(Constant.messages.getString(MESSAGE_PREFIX + "desc"))
+                .setOtherInfo(Constant.messages.getString(MESSAGE_PREFIX + "extrainfo"))
+                .setSolution(Constant.messages.getString(MESSAGE_PREFIX + "soln"))
+                .setReference(Constant.messages.getString(MESSAGE_PREFIX + "refs"))
+                .setEvidence(evidence)
+                .setCweId(933) // CWE-933: OWASP Top Ten 2013 Category A5 - Security
+                // Misconfiguration
+                .setWascId(14) // WASC-14: Server Misconfiguration
+                .raise();
     }
 
     @Override

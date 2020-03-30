@@ -46,7 +46,7 @@ public class PiiScannerUnitTest extends PassiveScannerTest<PiiScanner> {
         msg.setRequestHeader("GET https://www.example.com/test/ HTTP/1.1");
         msg.setResponseBody(numbers(15000));
         // When
-        rule.scanHttpResponseReceive(msg, -1, this.createSource(msg));
+        scanHttpResponseReceive(msg);
         // Then = No StackOverflowError
     }
 
@@ -56,9 +56,65 @@ public class PiiScannerUnitTest extends PassiveScannerTest<PiiScanner> {
         String cardNumber = "8.46786664623715e-47";
         HttpMessage msg = createMsg(cardNumber);
         // When
-        rule.scanHttpResponseReceive(msg, -1, this.createSource(msg));
+        scanHttpResponseReceive(msg);
         // Then
         assertThat(alertsRaised.size(), is(0));
+    }
+
+    @Test
+    public void shouldNotRaiseAlertInLeadingLongExponentNumbers() throws Exception {
+        // Given
+        String content =
+                "2.14111111111111111e-2"; // Visa - Extra digit before card number (after decimal)
+        HttpMessage msg = createMsg(content);
+        // When
+        scanHttpResponseReceive(msg);
+        // Then
+        assertThat(alertsRaised.size(), is(0));
+    }
+
+    @Test
+    public void shouldNotRaiseAlertInTrailingLongNegativeExponentNumbers() throws Exception {
+        // Given
+        String content = "2.41111111111111111e-2"; // Visa - Extra digit before e
+        HttpMessage msg = createMsg(content);
+        // When
+        scanHttpResponseReceive(msg);
+        // Then
+        assertThat(alertsRaised.size(), is(0));
+    }
+
+    @Test
+    public void shouldNotRaiseAlertInTrailingLongPositiveExponentNumbers() throws Exception {
+        // Given
+        String content = "2.41111111111111111e2"; // Visa - Extra digit before e
+        HttpMessage msg = createMsg(content);
+        // When
+        scanHttpResponseReceive(msg);
+        // Then
+        assertThat(alertsRaised.size(), is(0));
+    }
+
+    @Test
+    public void shouldNotRaiseAlertInPositiveExponentNumbers() throws Exception {
+        // Given
+        String content = "2.4111111111111111e2"; // Visa - Valid ahead of exponent
+        HttpMessage msg = createMsg(content);
+        // When
+        scanHttpResponseReceive(msg);
+        // Then
+        assertThat(alertsRaised.size(), is(0));
+    }
+
+    @Test
+    public void shouldRaiseAlertInPlausiblePeriodDelimitedContent() throws Exception {
+        // Given
+        String content = "1121.4111111111111111.John Smith.808"; // Visa
+        HttpMessage msg = createMsg(content);
+        // When
+        scanHttpResponseReceive(msg);
+        // Then
+        assertThat(alertsRaised.size(), is(1));
     }
 
     private HttpMessage createMsg(String cardNumber) throws HttpMalformedHeaderException {
