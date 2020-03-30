@@ -3,10 +3,16 @@ description = "Report Export module that allows users to customize content and e
 
 zapAddOn {
     addOnName.set("Export Report")
-    zapVersion.set("2.7.0")
+    zapVersion.set("2.9.0")
 
     manifest {
         author.set("Goran Sarenkapa - JordanGS")
+        url.set("https://www.zaproxy.org/docs/desktop/addons/export-report/")
+    }
+
+    apiClientGen {
+        api.set("org.zaproxy.zap.extension.exportreport.ExportReportAPI")
+        messages.set(file("src/main/resources/org/zaproxy/zap/extension/exportreport/resources/Messages.properties"))
     }
 }
 

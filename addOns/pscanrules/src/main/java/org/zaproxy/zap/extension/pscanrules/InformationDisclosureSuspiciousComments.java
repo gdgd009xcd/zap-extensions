@@ -44,7 +44,6 @@ public class InformationDisclosureSuspiciousComments extends PluginPassiveScanne
             "pscanrules.informationdisclosuresuspiciouscomments.";
     private static final int PLUGIN_ID = 10027;
 
-    private PassiveScanThread parent = null;
     public static final String suspiciousCommentsListDir = "xml";
     public static final String suspiciousCommentsListFile = "suspicious-comments.txt";
     private static final Logger logger =
@@ -59,6 +58,7 @@ public class InformationDisclosureSuspiciousComments extends PluginPassiveScanne
     public void scanHttpResponseReceive(HttpMessage msg, int id, Source source) {
 
         List<Pattern> patterns = getPatterns();
+        int confidence = Alert.CONFIDENCE_MEDIUM;
 
         if (msg.getResponseBody().length() > 0 && msg.getResponseHeader().isText()) {
             StringBuilder todoComments = new StringBuilder();
@@ -69,8 +69,11 @@ public class InformationDisclosureSuspiciousComments extends PluginPassiveScanne
                 for (String line : lines) {
                     for (Pattern pattern : patterns) {
                         if (pattern.matcher(line).find()) {
-                            todoComments.append(line);
+                            todoComments.append(
+                                    Constant.messages.getString(
+                                            MESSAGE_PREFIX + "otherinfo", pattern, line));
                             todoComments.append("\n");
+                            confidence = Alert.CONFIDENCE_LOW;
                             break; // Only need to record this line once
                         }
                     }
@@ -84,7 +87,9 @@ public class InformationDisclosureSuspiciousComments extends PluginPassiveScanne
                     String tagStr = tag.toString();
                     for (Pattern pattern : patterns) {
                         if (pattern.matcher(tagStr).find()) {
-                            todoComments.append(tagStr);
+                            todoComments.append(
+                                    Constant.messages.getString(
+                                            MESSAGE_PREFIX + "otherinfo", pattern, tagStr));
                             todoComments.append("\n");
                             break; // Only need to record this comment once
                         }
@@ -97,8 +102,11 @@ public class InformationDisclosureSuspiciousComments extends PluginPassiveScanne
                     String elStr = el.toString();
                     for (Pattern pattern : patterns) {
                         if (pattern.matcher(elStr).find()) {
-                            todoComments.append(elStr);
+                            todoComments.append(
+                                    Constant.messages.getString(
+                                            MESSAGE_PREFIX + "otherinfo", pattern, elStr));
                             todoComments.append("\n");
+                            confidence = Alert.CONFIDENCE_LOW;
                             break; // Only need to record this script once
                         }
                     }
@@ -106,27 +114,21 @@ public class InformationDisclosureSuspiciousComments extends PluginPassiveScanne
                 }
             }
             if (todoComments.length() > 0) {
-                this.raiseAlert(msg, id, todoComments.toString());
+                this.raiseAlert(msg, id, todoComments.toString(), confidence);
             }
         }
     }
 
-    private void raiseAlert(HttpMessage msg, int id, String detail) {
-        Alert alert = new Alert(getPluginId(), Alert.RISK_INFO, Alert.CONFIDENCE_MEDIUM, getName());
-        alert.setDetail(
-                getDescription(),
-                msg.getRequestHeader().getURI().toString(),
-                "",
-                "",
-                detail,
-                getSolution(),
-                "",
-                "", // No Evidence
-                200, // CWE Id 200 - Information Exposure
-                13, // WASC Id 13 - Info leakage
-                msg);
-
-        parent.raiseAlert(id, alert);
+    private void raiseAlert(HttpMessage msg, int id, String detail, int confidence) {
+        newAlert()
+                .setRisk(Alert.RISK_INFO)
+                .setConfidence(confidence)
+                .setDescription(getDescription())
+                .setOtherInfo(detail)
+                .setSolution(getSolution())
+                .setCweId(200) // CWE Id 200 - Information Exposure
+                .setWascId(13) // WASC Id 13 - Info leakage
+                .raise();
     }
 
     private static List<Pattern> getPatterns() {
@@ -171,7 +173,7 @@ public class InformationDisclosureSuspiciousComments extends PluginPassiveScanne
 
     @Override
     public void setParent(PassiveScanThread parent) {
-        this.parent = parent;
+        // Nothing to do.
     }
 
     @Override

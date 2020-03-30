@@ -19,7 +19,7 @@
  */
 package org.zaproxy.zap.extension.pscanrules;
 
-import java.util.Vector;
+import java.util.List;
 import net.htmlparser.jericho.Source;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.core.scanner.Alert;
@@ -27,6 +27,8 @@ import org.parosproxy.paros.network.HttpHeader;
 import org.parosproxy.paros.network.HttpMessage;
 import org.zaproxy.zap.extension.pscan.PassiveScanThread;
 import org.zaproxy.zap.extension.pscan.PluginPassiveScanner;
+import org.zaproxy.zap.sharedutils.CookieUtils;
+import org.zaproxy.zap.sharedutils.SetCookieUtils;
 
 public class CookieSameSiteScanner extends PluginPassiveScanner {
 
@@ -39,11 +41,9 @@ public class CookieSameSiteScanner extends PluginPassiveScanner {
     private static final String SAME_SITE_COOKIE_VALUE_STRICT = "Strict";
     private static final String SAME_SITE_COOKIE_VALUE_LAX = "Lax";
 
-    private PassiveScanThread parent = null;
-
     @Override
     public void setParent(PassiveScanThread parent) {
-        this.parent = parent;
+        // Nothing to do.
     }
 
     @Override
@@ -58,9 +58,9 @@ public class CookieSameSiteScanner extends PluginPassiveScanner {
     }
 
     private void checkCookies(HttpMessage msg, int id, String cookieHeader) {
-        Vector<String> cookies = msg.getResponseHeader().getHeaders(cookieHeader);
+        List<String> cookies = msg.getResponseHeader().getHeaderValues(cookieHeader);
 
-        if (cookies == null) {
+        if (cookies.isEmpty()) {
             return;
         }
         for (String cookie : cookies) {
@@ -82,22 +82,19 @@ public class CookieSameSiteScanner extends PluginPassiveScanner {
     }
 
     private void raiseAlert(HttpMessage msg, int id, String cookieHeaderValue, String description) {
-        Alert alert = new Alert(getPluginId(), Alert.RISK_LOW, Alert.CONFIDENCE_MEDIUM, getName());
-        alert.setDetail(
-                description,
-                msg.getRequestHeader().getURI().toString(),
-                SetCookieUtils.getCookieName(cookieHeaderValue),
-                "",
-                "",
-                getSolution(),
-                getReference(),
-                SetCookieUtils.getSetCookiePlusName(
-                        msg.getResponseHeader().toString(), cookieHeaderValue),
-                16, // CWE Id 16 - Configuration
-                13, // WASC Id - Info leakage
-                msg);
-
-        parent.raiseAlert(id, alert);
+        newAlert()
+                .setRisk(Alert.RISK_LOW)
+                .setConfidence(Alert.CONFIDENCE_MEDIUM)
+                .setDescription(description)
+                .setParam(SetCookieUtils.getCookieName(cookieHeaderValue))
+                .setSolution(getSolution())
+                .setReference(getReference())
+                .setEvidence(
+                        SetCookieUtils.getSetCookiePlusName(
+                                msg.getResponseHeader().toString(), cookieHeaderValue))
+                .setCweId(16) // CWE Id 16 - Configuration
+                .setWascId(13) // WASC Id - Info leakage
+                .raise();
     }
 
     @Override

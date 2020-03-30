@@ -31,6 +31,7 @@ import org.apache.commons.httpclient.URI;
 import org.apache.commons.httpclient.URIException;
 import org.junit.Test;
 import org.parosproxy.paros.Constant;
+import org.parosproxy.paros.core.scanner.Alert;
 import org.parosproxy.paros.network.HttpMalformedHeaderException;
 import org.parosproxy.paros.network.HttpMessage;
 import org.parosproxy.paros.network.HttpRequestHeader;
@@ -91,10 +92,11 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         assertTrue(msg.getResponseHeader().isJavaScript());
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(1, alertsRaised.size());
+        assertEquals(Alert.CONFIDENCE_LOW, alertsRaised.get(0).getConfidence());
     }
 
     @Test
@@ -110,7 +112,7 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         assertTrue(msg.getResponseHeader().isJavaScript());
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(0, alertsRaised.size());
@@ -128,7 +130,7 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         assertTrue(msg.getResponseHeader().isJavaScript());
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(0, alertsRaised.size());
@@ -148,10 +150,11 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         assertFalse(msg.getResponseHeader().isJavaScript());
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(1, alertsRaised.size());
+        assertEquals(Alert.CONFIDENCE_LOW, alertsRaised.get(0).getConfidence());
     }
 
     @Test
@@ -168,7 +171,7 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         assertFalse(msg.getResponseHeader().isJavaScript());
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(0, alertsRaised.size());
@@ -188,7 +191,7 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         assertFalse(msg.getResponseHeader().isJavaScript());
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(1, alertsRaised.size());
@@ -208,7 +211,7 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         assertFalse(msg.getResponseHeader().isJavaScript());
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(0, alertsRaised.size());
@@ -222,7 +225,7 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
         HttpMessage msg = createHttpMessageWithRespBody("", "text/html;charset=ISO-8859-1");
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, this.createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(0, alertsRaised.size());
@@ -239,7 +242,7 @@ public class InformationDisclosureSuspiciousCommentsUnitTest
                         "application/octet-stream;charset=ISO-8859-1");
 
         // When
-        rule.scanHttpResponseReceive(msg, -1, this.createSource(msg));
+        scanHttpResponseReceive(msg);
 
         // Then
         assertEquals(0, alertsRaised.size());

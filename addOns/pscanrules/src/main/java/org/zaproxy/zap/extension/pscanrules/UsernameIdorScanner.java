@@ -21,7 +21,6 @@ package org.zaproxy.zap.extension.pscanrules;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,14 +31,10 @@ import net.htmlparser.jericho.Source;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.log4j.Logger;
 import org.parosproxy.paros.Constant;
-import org.parosproxy.paros.control.Control;
 import org.parosproxy.paros.core.scanner.Alert;
-import org.parosproxy.paros.model.Model;
 import org.parosproxy.paros.network.HttpMessage;
 import org.zaproxy.zap.extension.pscan.PassiveScanThread;
 import org.zaproxy.zap.extension.pscan.PluginPassiveScanner;
-import org.zaproxy.zap.extension.users.ExtensionUserManagement;
-import org.zaproxy.zap.model.Context;
 import org.zaproxy.zap.users.User;
 
 public class UsernameIdorScanner extends PluginPassiveScanner {
@@ -47,7 +42,6 @@ public class UsernameIdorScanner extends PluginPassiveScanner {
     private static final String MESSAGE_PREFIX = "pscanrules.usernameidor.";
     private static final int PLUGIN_ID = 10057;
 
-    private PassiveScanThread parent = null;
     private static final Logger LOGGER = Logger.getLogger(UsernameIdorScanner.class);
 
     private static final String ADMIN = "Admin";
@@ -60,13 +54,9 @@ public class UsernameIdorScanner extends PluginPassiveScanner {
 
     private static Supplier<Iterable<String>> payloadProvider = DEFAULT_PAYLOAD_PROVIDER;
 
-    private List<User> testUsers = null;
-
-    private ExtensionUserManagement extUserMgmt;
-
     @Override
     public void setParent(PassiveScanThread parent) {
-        this.parent = parent;
+        // Nothing to do.
     }
 
     private List<User> getUsers() {
@@ -76,18 +66,7 @@ public class UsernameIdorScanner extends PluginPassiveScanner {
             usersList.add(new User(-1, payload));
         }
 
-        if (testUsers != null) {
-            testUsers.addAll(usersList);
-            return testUsers;
-        }
-
-        if (getExtensionUserManagement() == null) {
-            return Collections.emptyList();
-        }
-
-        for (Context context : Model.getSingleton().getSession().getContexts()) {
-            usersList.addAll(extUserMgmt.getContextUserAuthManager(context.getIndex()).getUsers());
-        }
+        usersList.addAll(getHelper().getUsers());
         return usersList;
     }
 
@@ -140,25 +119,19 @@ public class UsernameIdorScanner extends PluginPassiveScanner {
 
     private void raiseAlert(
             String username, String evidence, String hashType, int id, HttpMessage msg) {
-        Alert alert =
-                new Alert(
-                        getPluginId(),
-                        Alert.RISK_INFO,
-                        Alert.CONFIDENCE_HIGH, // PluginID, Risk, Reliability
-                        getName());
-        alert.setDetail(
-                getDescription(username), // Description
-                msg.getRequestHeader().getURI().toString(), // URI
-                "", // Param
-                "", // Attack
-                getOtherinfo(hashType, evidence), // Other info
-                getSolution(), // Solution
-                getReference(), // References
-                evidence, // Evidence
-                284, // CWE-284: Improper Access Control
-                02, // WASC-02: Insufficient Authorization
-                msg); // HttpMessage
-        parent.raiseAlert(id, alert);
+        newAlert()
+                .setRisk(Alert.RISK_INFO)
+                .setConfidence(Alert.CONFIDENCE_HIGH)
+                .setDescription(getDescription(username))
+                .setOtherInfo(getOtherinfo(hashType, evidence))
+                .setSolution(getSolution())
+                .setReference(getReference())
+                .setEvidence(evidence)
+                // CWE-284: Improper Access Control
+                .setCweId(284)
+                // WASC-02: Insufficient Authorization
+                .setWascId(02)
+                .raise();
     }
 
     @Override
@@ -201,25 +174,5 @@ public class UsernameIdorScanner extends PluginPassiveScanner {
 
     private static Supplier<Iterable<String>> getUsernameIdorPayloads() {
         return payloadProvider;
-    }
-
-    // The following methods support unit testing
-    protected void setUsers(String username) {
-        testUsers = new ArrayList<User>();
-        this.testUsers.add(new User(testUsers.size() + 1, username));
-    }
-
-    protected ExtensionUserManagement getExtensionUserManagement() {
-        if (extUserMgmt == null) {
-            extUserMgmt =
-                    Control.getSingleton()
-                            .getExtensionLoader()
-                            .getExtension(ExtensionUserManagement.class);
-        }
-        return extUserMgmt;
-    }
-
-    protected void setExtensionUserManagement(ExtensionUserManagement extensionUserManagement) {
-        this.extUserMgmt = extensionUserManagement;
     }
 }
