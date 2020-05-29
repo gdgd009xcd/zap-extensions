@@ -21,6 +21,18 @@ dependencies {
     testImplementation("org.apache.commons:commons-lang3:3.9")
 }
 
+tasks {
+    val sourcesJar by creating(Jar::class) {
+        archiveClassifier.set("sources")
+        from(sourceSets.main.get().allSource)
+    }
+
+    artifacts {
+        archives(sourcesJar)
+        //archives(jar)
+    }
+}
+
 spotless {
     java {
         clearSteps()
