@@ -1825,17 +1825,17 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 	// int NealyEqualPercent = 950;// 95 %  
 	int getNealyEqualPercent(){
 		int nepercent = 950;//default
+		String per = "";
 		try{
-			String per = Constant.messages.getString(MESSAGE_PREFIX + "nealyequalpercent");
+			per = Constant.messages.getString(MESSAGE_PREFIX + "nealyequalpercent");
 			if(per!=null&&per.length()>0){
 				int nper = Integer.parseInt(per);
 				if(nper>0){
 					nepercent = nper;
 				}
 			}
-		}catch(MissingResourceException e){
-
-			
+		}catch(Exception e){
+			log.debug(MESSAGE_PREFIX + "nealyequalpercent:" + per );
 		}
 		return nepercent;
 	}
@@ -1844,32 +1844,34 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 	//private int NealyDifferPercent = 751;// 75.1%
 	int getNealyDifferPercent(){
 		int nepercent = 751;//default
+		String per = "";
 		try{
-			String per = Constant.messages.getString(MESSAGE_PREFIX + "nealydifferpercent");
+			per = Constant.messages.getString(MESSAGE_PREFIX + "nealydifferpercent");
 			if(per!=null&&per.length()>0){
 				int nper = Integer.parseInt(per);
 				if(nper>0){
 					nepercent = nper;
 				}
 			}
-		}catch(MissingResourceException e){
-			
+		}catch(Exception e){
+			log.debug(MESSAGE_PREFIX + "nealydifferpercent:" + per );
 		}
 		return nepercent;
 	}
 	
 	int getNealyDifferOffsetMin(){
 		int nepercent = 70;//default 7%
+		String per = "";
 		try{
-			String per = Constant.messages.getString(MESSAGE_PREFIX + "nealydiffermin");
+			per = Constant.messages.getString(MESSAGE_PREFIX + "nealydiffermin");
 			if(per!=null&&per.length()>0){
 				int nper = Integer.parseInt(per);
 				if(nper>0){
 					nepercent = nper;
 				}
 			}
-		}catch(MissingResourceException e){
-			
+		}catch(Exception e){
+			log.debug(MESSAGE_PREFIX + "nealydiffermin:" + per );
 		}
 		return nepercent;
 	}
@@ -1913,15 +1915,17 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 	}
 	
 	//TODO:r
+
 	/**
-	* send same two request with specified parameter, then calculate two response's LCS(Longest Common Sequence).
-	* because same 2 request's response  difference contains CSRF token or something random value. By Extract the LCS from 2 request's response,
-	* It can remove CSRF token or random's from request.   
-	* 
-	* @param firstNumber
-	* @param secondNumber
-	* @return
-	*/
+	 *  send same two request with specified parameter, then calculate two response's LCS(Longest Common Sequence).
+	 * because same 2 request's response  difference contains CSRF token or something random value. By Extract the LCS from 2 request's response,
+	 * It can remove CSRF token or random's from request.
+	 *
+	 * @param comparator
+	 * @param param
+	 * @param sqlValue
+	 * @return
+	 */
 	HttpMessage sendRequestAndCalcLCS(LcsStringListComparator comparator, String param, String sqlValue) {
 		String[] res = new String[2];
 		res[0]=null; res[1] = null;String responsebody = "";
