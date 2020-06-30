@@ -1,11 +1,11 @@
 import org.zaproxy.gradle.addon.AddOnStatus
 
-version = "34"
-description = "Modified The release quality Active Scanner rules"
+version = "0.0.1"
+description = "a alpha Active Scanner rules modified from original ver 34 release Active scanner."
 
 zapAddOn {
     addOnName.set("Active scanner rules")
-    addOnStatus.set(AddOnStatus.RELEASE)
+    addOnStatus.set(AddOnStatus.ALPHA)
     zapVersion.set("2.7.0")
 
     manifest {
