@@ -5,24 +5,29 @@ import java.util.Arrays;
 import java.util.List;
 
 public class ListStringFactory {
+
+	static int DEFAULT_ROWUNIT = 10000;
 	private int n;
 	private int rowunit;
 	private int origrowsiz ;
 	List<String> records;
-	
-	ListStringFactory() {
+	StringSplitter splitter = null;
+
+	ListStringFactory(String dlm, int custom_unit) {
 		n= 1;
-		rowunit = 10000;
+		if(custom_unit > 0) {
+			rowunit = custom_unit;
+		} else {
+			rowunit = DEFAULT_ROWUNIT;
+		}
+		splitter = new StringSplitter(dlm);
 	}
 	
-	ListStringFactory(int ru){
-		n = 1;
-		rowunit = ru;
-	}
+
 	
 	public int calcRowSize(String lines) {
 		
-		records = Arrays.asList(lines.split("\n"));
+		records = splitter.split(lines);
 		origrowsiz = records.size();
 		n = origrowsiz / rowunit + 1;
 		return n;
@@ -46,7 +51,7 @@ public class ListStringFactory {
 		
 		List<String> blist = records;
 		if(b!=null) {
-			blist = Arrays.asList(b.split("\n"));
+			blist = splitter.split(b);
 		}
 		
 		int reclen = blist.size();
@@ -56,7 +61,7 @@ public class ListStringFactory {
 			if(etp>reclen) {
 				etp = reclen;
 			}
-			String joinedstring = String.join("\n", blist.subList(stp, etp));
+			String joinedstring = String.join("", blist.subList(stp, etp));
 			splinesB.add(joinedstring);
 		}
 		

@@ -11,7 +11,7 @@ public class OnpV {
 	int oper = 0;
 	int snakecnt = 0;//snakecnt>0 : snake x++;y++;
 	int P = -1;//current P
-	BitSet operhist = null;
+	List<Integer> operhist = null;
 	boolean refered = false;
 	//HashMap<Integer, Integer> operhist = null;//operhist[p] = oper at p
 	HashMap<Integer, Integer> snakehist = null;//snakehist[p] = snakecnt at p
@@ -23,7 +23,7 @@ public class OnpV {
 
 	
 	OnpV(int _x, int p, int _oper){
-		operhist = new BitSet(8);
+		operhist = new ArrayList<>();
 		snakehist = new HashMap<Integer, Integer>();
 		setOper(_x, p, _oper);
 	}
@@ -42,10 +42,7 @@ public class OnpV {
 	public void saveHist() {
 
 			if(oper==1) {
-				
-					operhist.set(P);
-				//}
-				
+				operhist.add(P);
 			}
 			if(snakecnt>0) {
 				//int hsnk = 0;
@@ -65,7 +62,7 @@ public class OnpV {
 	}
 	
 	public int getOper(int p) {
-		boolean  histoper = operhist.get(p);
+		boolean  histoper = operhist.indexOf(p) != -1 ? true : false;
 		if(histoper==false) {
 			if(p==P) {//current P
 				return oper;

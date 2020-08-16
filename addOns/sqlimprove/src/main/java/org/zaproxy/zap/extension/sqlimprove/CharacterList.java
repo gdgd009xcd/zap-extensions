@@ -1,8 +1,6 @@
 package org.zaproxy.zap.extension.sqlimprove;
 
 import java.util.AbstractList;
-import java.util.Collection;
-import java.util.List;
 
 public class CharacterList extends AbstractList <Character>{
 	private  String string;

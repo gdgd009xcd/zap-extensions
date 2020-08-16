@@ -1,8 +1,8 @@
 package org.zaproxy.zap.extension.sqlimprove;
 
-import java.util.List;
-
 import org.apache.log4j.Logger;
+
+import java.util.List;
 
 public abstract class AbstractLcsComparator<T> implements LcsComparator<T>{
 	protected  Logger log = null;

@@ -1,23 +1,29 @@
 package org.zaproxy.zap.extension.sqlimprove;
 
+import org.apache.log4j.Logger;
+
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 public class LcsStringListComparator extends LcsOnp<String>{
 	
-	int maxcharlength = 100000;
-	int minrowlength = 3000;
-	int extrowlength = 10;
+	int MINROWLENGTH = 500; // if contents line count < MINROWLENGTH, then split contents by whitespace.
+	int EXTRACTLCS_UNIT = 500000; // extractLCS row unit.
 	
 	LcsStringListComparator(Logger _log){
 		super(_log);
 	}
-	
-	int extractLCS(String a , String b, LcsCharacterList charLCSresult) {
+
+	/**
+	 * extract LCS from a and b which are same request's response.
+	 * @param a
+	 * @param b
+	 * @param LCSresult
+	 * @return
+	 */
+	int extractLCS(String a , String b, LcsStringList LCSresult) {
+
 		if(a==null) {
 			a = "";
 		}
@@ -25,30 +31,27 @@ public class LcsStringListComparator extends LcsOnp<String>{
 		if(b==null) {
 			b = "";
 		}
-		
-		List<String> alist = Arrays.asList(a.split("\n"));
-		List<String> blist = Arrays.asList(b.split("\n"));
-		
-		int asiz = alist.size();
-		int bsiz = blist.size();
-		int maxsiz = asiz>bsiz?asiz:bsiz;
-		
-		if(maxsiz<extrowlength) {
-			//CharacterList
-			CharacterList achar = new CharacterList(a);
-			CharacterList bchar = new CharacterList(b);
-			return calcPercentChar(achar, bchar, charLCSresult);
+
+		ListStringFactory w_lsfctA = new ListStringFactory("[ \r\t\n]+", EXTRACTLCS_UNIT);
+		ListStringFactory w_lsfctB = new ListStringFactory("[ \r\t\n]+", EXTRACTLCS_UNIT);
+		int w_rowsizA = w_lsfctA.calcRowSize(a);
+		int w_origAsiz = w_lsfctA.getOrigRowSize();
+		int w_rowsizB = w_lsfctB.calcRowSize(b);
+		int w_origBsiz = w_lsfctB.getOrigRowSize();
+
+		if(w_rowsizA>w_rowsizB) {
+			w_lsfctB.setRowSize(w_rowsizA);
+		} else {
+			w_lsfctA.setRowSize(w_rowsizB);
 		}
+
 		//List<String>
+		List<String> alist = w_lsfctA.getLFSplittedStringList(null);
+
+		List<String> blist = w_lsfctB.getLFSplittedStringList(null);
 		
-		LcsStringList listLCSresult = new LcsStringList();
-		
-		int lpercent =  calcPercent(alist, blist, listLCSresult);
-		List<String> lcslist = listLCSresult.getLCS();
-		String lcsStr = String.join("\n", lcslist);
-		
-		charLCSresult.setLCS(lcsStr);
-		
+		int lpercent =  calcPercent(alist, blist, LCSresult);
+
 		return lpercent;
 		
 		
@@ -73,88 +76,66 @@ public class LcsStringListComparator extends LcsOnp<String>{
 		}
 		return cpercent;
 	}
-	
+
+	/**
+	 * compare String a with b.
+	 * @param a
+	 * @param b
+	 * @param result - Longest Common Subsequence
+	 * @return match rate 0-1000 (100.0 % * 10)
+	 */
 	int compare(String a, String b, LcsStringList result) {
-		
+
 		if(result==null) {
 			result = new LcsStringList();
 		}
-		
+
 		if(a==null) {
 			a = "";
 		}
-		
+
 		if(b==null) {
 			b = "";
 		}
-		
-		
-		
 
-		
-		ListStringFactory lsfct = new ListStringFactory();
-		
+		ListStringFactory lsfct = new ListStringFactory("[\n]+", -1);
+
 		int rowsiza = lsfct.calcRowSize(a);
 		int origAsiz = lsfct.getOrigRowSize();
 		int rowsizb = lsfct.calcRowSize(b);
 		int origBsiz = lsfct.getOrigRowSize();
 		int origMaxsiz = origAsiz>origBsiz?origAsiz:origBsiz;
-		
-		if(origMaxsiz<minrowlength) {
-			//calcPercentChar
-			LcsCharacterList cresult = new LcsCharacterList();
-			CharacterList charA = new CharacterList(a);
-			CharacterList charB = new CharacterList(b);
-			return calcPercentChar(charA, charB, cresult);
+
+		if(origMaxsiz<MINROWLENGTH) {
+			ListStringFactory w_lsfct = new ListStringFactory("[ \r\t\n]+", -1);
+			int w_rowsiza = w_lsfct.calcRowSize(a);
+			int w_origAsiz = w_lsfct.getOrigRowSize();
+			int w_rowsizb = w_lsfct.calcRowSize(b);
+			int w_origBsiz = w_lsfct.getOrigRowSize();
+			origMaxsiz = w_origAsiz>w_origBsiz?w_origAsiz:w_origBsiz;
+			lsfct = w_lsfct;
+			rowsiza = w_rowsiza;
+			rowsizb = w_rowsizb;
 		}
-		
+
 		if(rowsiza>rowsizb) {
 			lsfct.setRowSize(rowsiza);
 		}
 		List<String> alist = lsfct.getLFSplittedStringList(a);
-		
-		List<String> blist = lsfct.getLFSplittedStringList(b);
-		
+
+		List<String> blist = lsfct.getLFSplittedStringList(null);
+
+		System.out.println("rowsize=" + lsfct.getRowSize() + " alist.size=" + alist.size());
 		int lpercent =  calcPercent(alist, blist, result);
 		if(log!=null) {
 			log.debug("listpercent:" + lpercent);
 		}
 		//System.out.println("listpercent:" + lpercent);
-		
+
 		double dlpercent = 1000 - lpercent;
-		
-		if(lpercent<750) return lpercent;
-		
-		List<String> dalist = result.getDiffA();
-		List<String> dblist = result.getDiffB();
-		Collections.reverse(dalist);
-		Collections.reverse(dblist);
-		
-		String joinedA = String.join("\n", dalist);
-		String joinedB = String.join("\n", dblist);
-		int alen = joinedA.length();
-		int blen = joinedB.length();
-		
-		int clen = alen>blen?alen:blen;
-		int bytelen = clen>maxcharlength?maxcharlength:clen;
-		
-		int aend = bytelen>alen?alen:bytelen;
-		int bend = bytelen>blen?blen:bytelen;
-		CharacterList charA = new CharacterList(joinedA.substring(0, aend));
-		CharacterList charB = new CharacterList(joinedB.substring(0, bend));
-		LcsCharacterList cresult = new LcsCharacterList();
-		int cpercent = calcPercentChar(charA, charB, cresult);
-		result.setLcsChars(cresult.getLCS().getString());
-		
-		//System.out.println("cpercent:" + cpercent + " alen,blen:" + alen + "," + blen);
-		double lcsbytes = bytelen * (double)cpercent/ 1000;
-		double daddpercent = dlpercent * lcsbytes / clen;
-		int addpercent = (int)Math.floor(daddpercent);
-		if(log!=null) {
-			log.debug("addprecent:" + addpercent + " lcsbytes:" + lcsbytes);
-		}
-		//System.out.println("addprecent:" + addpercent + " lcsbytes:" + lcsbytes);
-		return lpercent+addpercent;
-		
+
+		return lpercent;
 	}
+
+
 }

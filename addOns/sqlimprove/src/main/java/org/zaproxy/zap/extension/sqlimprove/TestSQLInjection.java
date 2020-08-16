@@ -1042,7 +1042,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 
 								if (this.debugEnabled) {
 									log.debug("before andTrueFalsePercent[" + trueAndFalseBodyPercent + "]  refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] && orTrueFalsePercent[" + orTrueFalsePercent + "]  refNealyDifferPercentMin[" + refNealyDifferPercentMin + "] && andorFalsePercent[" + andorFalsePercent + "]  refNealyEqualPercent[" + refNealyEqualPercent + "]");
-									String lcsCharStr = orTrueFalseLcs.getLcsChars();
+									String lcsCharStr = orTrueFalseLcs.getLCSString();
 									log.debug("orTrueFalseLcsCharStr[" + lcsCharStr + "]");
 								}
 
@@ -1865,9 +1865,9 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 			responsebody = res[cn];
 		}
 		if(res[0]!=null&&res[1]!=null) {
-			LcsCharacterList clcs = new LcsCharacterList();
+			LcsStringList clcs = new LcsStringList();
 			comparator.extractLCS(res[0], res[1], clcs);
-			responsebody = clcs.getLCS().getString();
+			responsebody = clcs.getLCSString();
 			if(log.isDebugEnabled()) {
 				//log.debug("ANDTRUE lcs[" + responsebody + "]");
 			}

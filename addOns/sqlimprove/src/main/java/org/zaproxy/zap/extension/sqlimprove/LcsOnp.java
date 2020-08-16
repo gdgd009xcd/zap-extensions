@@ -1,8 +1,8 @@
 package org.zaproxy.zap.extension.sqlimprove;
 
-import java.util.List;
-
 import org.apache.log4j.Logger;
+
+import java.util.List;
 
 public class LcsOnp<T> extends AbstractLcsComparator<T>{
 	
@@ -39,7 +39,7 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 		long startTime = System.currentTimeMillis();
 		int D = onpCalc(a, b, result);
 		long onpcalctime= System.currentTimeMillis() - startTime;
-		//System.out.println("ONP D:" + D + " time:" + onpcalctime);
+		System.out.println("onpCalc D:" + D + " lapsetime:" + onpcalctime);
 		if(result!=null) {
 			result.clear();
 		}
@@ -65,107 +65,162 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 		}
 		listX = A;
 		listY = B;
-		onpV = new OnpV[M+N+1];
+		int onpvsize = M+N+1;
+		onpV = new OnpV[onpvsize];
+		for(int w = 0; w < onpvsize; w++) {
+			onpV[w] = new OnpV(0,0,0);
+		}
 		delta = N-M;
 		offset = M ;
 		delta_offset = delta + offset;
 		OnpV prev = null;
-		for(int p=0; p<=M; p++) {
+		{
+			int p = 0;
 			int k;
 			int oper = 0;
-			
-			int kstart = offset - p;
+
+			int kstart = offset;
 			for (k = kstart; k < delta_offset; ++k) {
-				
+
 				int x = 0;
 				//prev = null;
 				//int x = (p == 0) ? (k == 0 ? 0 : onpV[k - 1 + offset].x)
 				//		: (k == -p ? onpV[k + 1 + offset].x + 1 : Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x));
-				if(p==0) {
-					if(k==offset) {//k==0:k==offset
-						//0
-						oper = 0;
-						//prev = null;
-						x = 0;
-					}else {
-						
-						oper = -1;
-						//onpV[k - 1 + offset].x
-						prev = onpV[k-1];
-						x = prev.x;
-						prev.setRefered();
-					}
-				}else if(k==kstart) {//k==-p: k == kstart
-					//onpV[k + 1 + offset].x + 1 
-					prev = onpV[k+1];
-					x = prev.x + 1;
+
+				if(k==offset) {//k==0:k==offset
+					//0
+					oper = 0;
+					//prev = null;
+					x = 0;
+				}else {
+
+					oper = -1;
+					//onpV[k - 1 + offset].x
+					prev = onpV[k-1];
+					x = prev.x;
 					prev.setRefered();
-					//x = prev.x + 1;
-					oper = 1;
-				}else {
-					//Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x)
-					OnpV onpVxplus =  onpV[k+1];
-					OnpV onpVxminus = onpV[k-1];
-					int xplus = onpVxplus.x+1;
-					int xminus = onpVxminus.x;
-					if(xplus > xminus) {
-						x = xplus;
-						//prev = onpVxplus;
-						oper = 1;
-						onpVxplus.setRefered();
-					}else {
-						x = xminus;
-						//prev = onpVxminus;
-						oper = -1;
-						onpVxminus.setRefered();
-					}
 				}
-				
-				
-				if(onpV[k]==null) {
-					onpV[k] = new OnpV(x, p, oper);
-				}else {
-					onpV[k].setOper(x, p, oper);
-				}
+
+
+				onpV[k].setOper(x, p, oper);
 				snake(k, x, A, B, onpV[k]);
-				
-				
+
+			}
+
+			k = delta_offset;
+			int x = 0;
+			//int x = (p == 0) ? (k == 0 ? 0 : onpV[k - 1 + offset].x)
+			//		: Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x);
+
+			if(k==offset) {//k==0:k==offset
+				//0
+				x = 0;
+				//prev = null;
+				oper = 0;
+			}else {
+				//onpV[k - 1 + offset].x
+				prev = onpV[k - 1];
+				x = prev.x;
+				prev.setRefered();
+				oper = -1;
+			}
+
+			onpV[k].setOper(x, p, oper);
+			snake(k, x, A, B, onpV[k]);
+
+			if (onpV[delta_offset].x == M) {
+				// return delta + 2 * p;
+				distance = delta + 2*p;
+				if(log!=null)
+					log.debug("D="+distance + " delta: " + delta + " offset:" + offset + " p=" +p);
+
+				P = p;
+				return distance;
+			}
+		}
+
+		for(int p=1; p<=M; p++) {
+			int k;
+			int oper = 0;
+
+			int kstart = offset - p;
+			k = kstart;
+			if (k < delta_offset) {
+				int x = 0;
+				//prev = null;
+				//int x = (p == 0) ? (k == 0 ? 0 : onpV[k - 1 + offset].x)
+				//		: (k == -p ? onpV[k + 1 + offset].x + 1 : Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x));
+				//onpV[k + 1 + offset].x + 1
+				prev = onpV[k+1];
+				x = prev.x + 1;
+				prev.setRefered();
+				//x = prev.x + 1;
+				oper = 1;
+				onpV[k].setOper(x, p, oper);
+				snake(k, x, A, B, onpV[k]);
+			}
+			k++;
+			for (; k < delta_offset; ++k) {
+
+				int x = 0;
+				//prev = null;
+				//int x = (p == 0) ? (k == 0 ? 0 : onpV[k - 1 + offset].x)
+				//		: (k == -p ? onpV[k + 1 + offset].x + 1 : Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x));
+				//Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x)
+				OnpV onpVxplus =  onpV[k+1];
+				OnpV onpVxminus = onpV[k-1];
+				int xplus = onpVxplus.x+1;
+				int xminus = onpVxminus.x;
+				if(xplus > xminus) {
+					x = xplus;
+					//prev = onpVxplus;
+					oper = 1;
+					onpVxplus.setRefered();
+				}else {
+					x = xminus;
+					//prev = onpVxminus;
+					oper = -1;
+					onpVxminus.setRefered();
+				}
+
+				onpV[k].setOper(x, p, oper);
+				snake(k, x, A, B, onpV[k]);
+
 			}
 			kstart = p+delta_offset;
-			for (k = kstart; k > delta_offset; k--) {
+			k=kstart;
+			{
+				prev = onpV[k - 1];
+				int x = prev.x;
+				prev.setRefered();
+				oper = -1;
+				onpV[k].setOper(x, p, oper);
+				snake(k, x, A, B, onpV[k]);
+			}
+			k--;
+			for (; k > delta_offset; k--) {
 				//startTime = System.currentTimeMillis();
 				int x = 0;
 				//int x = (k == (delta + p)) ? onpV[k - 1 + offset].x
 				//		: Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x);
-				if(k==kstart) {
-					//onpV[k - 1 + offset].x
-					prev = onpV[k - 1];
-					x = prev.x;
-					prev.setRefered();
+
+				OnpV onpVxplus =  onpV[k+1];
+				OnpV onpVxminus = onpV[k-1];
+				int xplus = onpVxplus.x+1;
+				int xminus = onpVxminus.x;
+				if(xplus > xminus) {
+					x = xplus;
+					//prev = onpVxplus;
+					onpVxplus.setRefered();
+					oper = 1;
+				}else {
+					x = xminus;
+					//prev = onpVxminus;
+					onpVxminus.setRefered();
 					oper = -1;
-				}else {
-					OnpV onpVxplus =  onpV[k+1];
-					OnpV onpVxminus = onpV[k-1];
-					int xplus = onpVxplus.x+1;
-					int xminus = onpVxminus.x;
-					if(xplus > xminus) {
-						x = xplus;
-						//prev = onpVxplus;
-						onpVxplus.setRefered();
-						oper = 1;
-					}else {
-						x = xminus;
-						//prev = onpVxminus;
-						onpVxminus.setRefered();
-						oper = -1;
-					}
 				}
-				
-				if(onpV[k]==null) {
-					onpV[k] = new OnpV(x, p, oper);
-				}else {
-					onpV[k].setOper(x, p, oper);
-				}
+
+				onpV[k].setOper(x, p, oper);
 				snake(k, x, A, B, onpV[k]);
 				
 			}
@@ -173,20 +228,7 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 			int x = 0;
 			//int x = (p == 0) ? (k == 0 ? 0 : onpV[k - 1 + offset].x)
 			//		: Math.max(onpV[k + 1 + offset].x + 1, onpV[k - 1 + offset].x);
-			if(p==0) {
-				if(k==offset) {//k==0:k==offset
-					//0
-					x = 0;
-					//prev = null;
-					oper = 0;
-				}else {
-					//onpV[k - 1 + offset].x
-					prev = onpV[k - 1];
-					x = prev.x;
-					prev.setRefered();
-					oper = -1;
-				}
-			}else {
+			{
 				OnpV onpVxplus =  onpV[k+1];
 				OnpV onpVxminus = onpV[k-1];
 				int xplus = onpVxplus.x+1;
@@ -204,18 +246,9 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 				}
 			}
 			
-			if(onpV[k]==null) {
-				
-				onpV[k] = new OnpV(x, p, oper);
-				
-			}else {
-				
-				onpV[k].setOper(x, p, oper);
-				
-			}
+			onpV[k].setOper(x, p, oper);
 			snake(k, x, A, B, onpV[k]);
-			
-						
+
 			if (onpV[delta_offset].x == M) {
 				// return delta + 2 * p;
 				distance = delta + 2*p;
@@ -262,7 +295,7 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 		if(lcsBuilder!=null) {
 			lcsBuilder.setReverseLCS();
 		}
-		//long startTime = System.currentTimeMillis();
+		long startTime = System.currentTimeMillis();
 		if(onpV!=null) {
 			OnpV cv = onpV[delta_offset];
 			int k = delta_offset;
@@ -375,8 +408,8 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 				
 			}
 		}
-		//long getlcstotaltime = System.currentTimeMillis() - startTime;
-		//System.out.println("getlcs time:" + getlcstotaltime);
+		long getlcstotaltime = System.currentTimeMillis() - startTime;
+		System.out.println("getLCSinternal lapsetime:" + getlcstotaltime);
 		return lcscnt;
 		
 	}

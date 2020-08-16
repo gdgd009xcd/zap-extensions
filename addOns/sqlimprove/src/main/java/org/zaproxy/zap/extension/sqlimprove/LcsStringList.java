@@ -27,7 +27,12 @@ public class LcsStringList implements LcsBuilder<String>{
 	public void add(int index, String s) {
 		strings.add(index, s);
 	}
-	
+
+	/**
+	 * get List of Longest Common Subsequene from two Strings
+	 *
+	 * @return
+	 */
 	@Override
 	public List<String> getLCS(){// return reverse order list
 		if(reverse) {
@@ -37,7 +42,16 @@ public class LcsStringList implements LcsBuilder<String>{
 		}
 		return strings;
 	}
-	
+
+	/**
+	 * get String of Longest Common Subsequence from two strings.
+	 *
+	 * @return
+	 */
+	public String getLCSString(){
+		return String.join("", getLCS());
+	}
+
 	@Override
 	public int size() {
 		return strings.size();
@@ -113,12 +127,14 @@ public class LcsStringList implements LcsBuilder<String>{
 	public void setABreverse(boolean b) {
 		ABreverse = b;
 	}
-	
-	public void setLcsChars(String c) {
+
+	/* obsolete */
+	public void obsolete_setLcsChars(String c) {
 		lcschars = c;
 	}
-	
-	public String getLcsChars() {
+
+	/* obsolete */
+	public String obsolete_getLcsChars() {
 		return lcschars;
 	}
 
