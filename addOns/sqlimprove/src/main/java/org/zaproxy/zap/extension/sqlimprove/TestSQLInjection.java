@@ -616,7 +616,7 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 
 		try {
 			
-			LcsStringListComparator comparator = new LcsStringListComparator(log);
+			LcsStringListComparator comparator = new LcsStringListComparator();
 			
 			
 			//reinitialise the count for each type of request, for each parameter.  We will be sticking to limits defined in the attach strength logic
