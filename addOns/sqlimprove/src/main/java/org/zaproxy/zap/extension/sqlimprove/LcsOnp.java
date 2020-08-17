@@ -5,7 +5,7 @@ import org.apache.log4j.Logger;
 import java.util.List;
 
 public class LcsOnp<T> extends AbstractLcsComparator<T>{
-	
+
     int M;
     int N;
 	OnpV onpV[] = null;
@@ -36,10 +36,15 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 	
 	@Override
 	public int calcLCS(List<T> a, List<T> b, LcsBuilder<T> result) {//return lcs size
-		long startTime = System.currentTimeMillis();
+		long startTime = 0;
+		if(log.isDebugEnabled()) {
+			startTime = System.currentTimeMillis();
+		}
 		int D = onpCalc(a, b, result);
-		long onpcalctime= System.currentTimeMillis() - startTime;
-		System.out.println("onpCalc D:" + D + " lapsetime:" + onpcalctime);
+		if (log.isDebugEnabled()) {
+			long onpcalctime = System.currentTimeMillis() - startTime;
+			log.debug("onpCalc D:" + D + " lapsetime:" + onpcalctime);
+		}
 		if(result!=null) {
 			result.clear();
 		}
@@ -295,7 +300,10 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 		if(lcsBuilder!=null) {
 			lcsBuilder.setReverseLCS();
 		}
-		long startTime = System.currentTimeMillis();
+		long startTime = 0;
+		if (log.isDebugEnabled()) {
+			startTime = System.currentTimeMillis();
+		}
 		if(onpV!=null) {
 			OnpV cv = onpV[delta_offset];
 			int k = delta_offset;
@@ -408,8 +416,10 @@ public class LcsOnp<T> extends AbstractLcsComparator<T>{
 				
 			}
 		}
-		long getlcstotaltime = System.currentTimeMillis() - startTime;
-		System.out.println("getLCSinternal lapsetime:" + getlcstotaltime);
+		if (log.isDebugEnabled()) {
+			long getlcstotaltime = System.currentTimeMillis() - startTime;
+			log.debug("getLCSinternal lapsetime:" + getlcstotaltime);
+		}
 		return lcscnt;
 		
 	}

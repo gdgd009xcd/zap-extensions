@@ -51,7 +51,7 @@ public class LcsStringList implements LcsBuilder<String>{
 	public String getLCSString(){
 		return String.join("", getLCS());
 	}
-
+	
 	@Override
 	public int size() {
 		return strings.size();

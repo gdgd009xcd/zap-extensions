@@ -7,12 +7,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class LcsStringListComparator extends LcsOnp<String>{
-	
+	static Logger log = Logger.getLogger(LcsStringListComparator.class);
+
 	int MINROWLENGTH = 500; // if contents line count < MINROWLENGTH, then split contents by whitespace.
 	int EXTRACTLCS_UNIT = 500000; // extractLCS row unit.
 	
-	LcsStringListComparator(Logger _log){
-		super(_log);
+	LcsStringListComparator(){
+		super(log);
 	}
 
 	/**
@@ -98,34 +99,39 @@ public class LcsStringListComparator extends LcsOnp<String>{
 			b = "";
 		}
 
-		ListStringFactory lsfct = new ListStringFactory("[\n]+", -1);
+		ListStringFactory lsfctA = new ListStringFactory("[\n]+", -1);
+		ListStringFactory lsfctB = new ListStringFactory("[\n]+", -1);
 
-		int rowsiza = lsfct.calcRowSize(a);
-		int origAsiz = lsfct.getOrigRowSize();
-		int rowsizb = lsfct.calcRowSize(b);
-		int origBsiz = lsfct.getOrigRowSize();
+		int rowsiza = lsfctA.calcRowSize(a);
+		int origAsiz = lsfctA.getOrigRowSize();
+		int rowsizb = lsfctB.calcRowSize(b);
+		int origBsiz = lsfctB.getOrigRowSize();
 		int origMaxsiz = origAsiz>origBsiz?origAsiz:origBsiz;
 
 		if(origMaxsiz<MINROWLENGTH) {
-			ListStringFactory w_lsfct = new ListStringFactory("[ \r\t\n]+", -1);
-			int w_rowsiza = w_lsfct.calcRowSize(a);
-			int w_origAsiz = w_lsfct.getOrigRowSize();
-			int w_rowsizb = w_lsfct.calcRowSize(b);
-			int w_origBsiz = w_lsfct.getOrigRowSize();
+			ListStringFactory w_lsfctA = new ListStringFactory("[ \r\t\n]+", -1);
+			ListStringFactory w_lsfctB = new ListStringFactory("[ \r\t\n]+", -1);
+			int w_rowsiza = w_lsfctA.calcRowSize(a);
+			int w_origAsiz = w_lsfctA.getOrigRowSize();
+			int w_rowsizb = w_lsfctB.calcRowSize(b);
+			int w_origBsiz = w_lsfctB.getOrigRowSize();
 			origMaxsiz = w_origAsiz>w_origBsiz?w_origAsiz:w_origBsiz;
-			lsfct = w_lsfct;
+			lsfctA = w_lsfctA;
+			lsfctB = w_lsfctB;
 			rowsiza = w_rowsiza;
 			rowsizb = w_rowsizb;
 		}
 
 		if(rowsiza>rowsizb) {
-			lsfct.setRowSize(rowsiza);
+			lsfctB.setRowSize(rowsiza);
+		} else {
+			lsfctA.setRowSize(rowsizb);
 		}
-		List<String> alist = lsfct.getLFSplittedStringList(a);
+		List<String> alist = lsfctA.getLFSplittedStringList(null);
 
-		List<String> blist = lsfct.getLFSplittedStringList(null);
+		List<String> blist = lsfctB.getLFSplittedStringList(null);
 
-		System.out.println("rowsize=" + lsfct.getRowSize() + " alist.size=" + alist.size());
+		log.debug("rowsize=" + lsfctA.getRowSize() + " alist.size=" + alist.size());
 		int lpercent =  calcPercent(alist, blist, result);
 		if(log!=null) {
 			log.debug("listpercent:" + lpercent);

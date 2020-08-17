@@ -12,7 +12,7 @@ public class ListStringFactory {
 	private int origrowsiz ;
 	List<String> records;
 	StringSplitter splitter = null;
-
+	
 	ListStringFactory(String dlm, int custom_unit) {
 		n= 1;
 		if(custom_unit > 0) {
