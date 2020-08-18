@@ -16,7 +16,7 @@ plugins {
 description = "Common configuration of the add-ons."
 
 val parentProjects = listOf(
-    "webdrivers"
+        ""
 )
 
 val jacocoToolVersion = "0.8.4"
