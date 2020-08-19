@@ -65,12 +65,12 @@ import difflib.Patch;
  *
  * @author 70pointer
  */
-public class TestSQLInjection extends AbstractAppParamPlugin {
+public class CustomSQLInjection extends AbstractAppParamPlugin {
 
 	/**
 	 * Prefix for internationalised messages used by this rule
 	 */
-	private static final String MESSAGE_PREFIX = "sqlimprove.testsqlinjection.";
+	private static final String MESSAGE_PREFIX = "customactivescan.testsqlinjection.";
 
 	/**
 	* Did SQLInjection get found yet?
@@ -430,18 +430,20 @@ public class TestSQLInjection extends AbstractAppParamPlugin {
 	/**
 	 * for logging.
 	 */
-	private static Logger log = Logger.getLogger(TestSQLInjection.class);
+	private static Logger log = Logger.getLogger(CustomSQLInjection.class);
 	/**
 	 * determines if we should output Debug level logging
 	 */
 	private boolean debugEnabled = log.isDebugEnabled();
 
 	@Override
+	// must be unique in all plugins.
 	public int getId() {
-		return 40018;
+		return 120000;
 	}
 
 	@Override
+	// must be unique in all plugins.
 	public String getName() {
 		return Constant.messages.getString(MESSAGE_PREFIX+ "name");
 	}

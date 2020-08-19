@@ -38,9 +38,9 @@ import fi.iki.elonen.NanoHTTPD.IHTTPSession;
 import fi.iki.elonen.NanoHTTPD.Response;
 
 /**
- * Unit test for {@link TestSQLInjection}.
+ * Unit test for {@link CustomSQLInjection}.
  */
-public class TestSQLInjectionUnitTest extends ActiveScannerAppParamTest<TestSQLInjection> {
+public class CustomSQLInjectionUnitTest extends ActiveScannerAppParamTest<CustomSQLInjection> {
 
     @Override
     protected int getRecommendMaxNumberMessagesPerParam(AttackStrength strength) {
@@ -64,8 +64,8 @@ public class TestSQLInjectionUnitTest extends ActiveScannerAppParamTest<TestSQLI
     }
 
     @Override
-    protected TestSQLInjection createScanner() {
-        return new TestSQLInjection();
+    protected CustomSQLInjection createScanner() {
+        return new CustomSQLInjection();
     }
 
     @Test

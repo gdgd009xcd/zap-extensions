@@ -38,13 +38,14 @@ public class ExtensionAscanRules extends ExtensionAdaptor {
 	}
 
 	@Override
+	// caution: this name must unique in All AddOns, even if the package name is unique.
 	public String getName() {
-		return "ExtensionAscanRules";
+		return "ExtensionCustomActiveScanRules";
 	}
 
 	@Override
 	public String getDescription() {
-		return Constant.messages.getString("sqlimprove.desc");
+		return Constant.messages.getString("customactivescan.desc");
 	}
 	
 	@Override
@@ -75,7 +76,6 @@ public class ExtensionAscanRules extends ExtensionAdaptor {
 
 		@Override
 		public void sessionAboutToChange(Session session) {
-			PersistentXSSUtils.reset();
 		}
 	}
 }
