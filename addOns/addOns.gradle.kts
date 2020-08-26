@@ -81,6 +81,7 @@ tasks.register("reportMissingHelp") {
     }
 }
 
+/**
 tasks.register<TestReport>("testReport") {
     destinationDir = file("$buildDir/reports/allTests")
     subprojects.forEach {
@@ -94,6 +95,7 @@ tasks.register<TestReport>("testReport") {
         logger.lifecycle("Test Report: $reportUrl")
     }
 }
+*/
 
 val jacocoMerge by tasks.registering(JacocoMerge::class) {
     destinationFile = file("$buildDir/jacoco/all.exec")
