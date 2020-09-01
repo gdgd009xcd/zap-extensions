@@ -36,7 +36,7 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
     public void init() {
         super.init();
 
-        LoadGsonInjectionPatterns gsonloader = new LoadGsonInjectionPatterns("/mnt/oldroot/home/daike/Document/Samples/Patterxns/injection.txt");
+        LoadGsonInjectionPatterns gsonloader = new LoadGsonInjectionPatterns("/mnt/oldroot/home/daike/Document/Samples/Patterns/injection.txt");
         this.patterns = gsonloader.getPatternList();
 
         this.NEALYEQUALPERCENT = getNealyEqualPercent();
@@ -83,11 +83,27 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
             String falseValue = null;
             String[] falseBodyOutputs = null;
             String[] errorBodyOutputs = null;
+            HttpMessage errormessage = null;
+            boolean bingoError = false;
 
             for(int i=0;i<2;i++) {
                 int truepercent = comparator.compare(normalBodyOutputs[i] , trueBodyOutputs[i], trueLCSs[i]);
                 int falsepercent = -1;
                 // 1-1.true response matched original response
+                if (LOGGER4J.isDebugEnabled()) {
+                    String debugmess = "origParamName["
+                            + origParamName
+                            + "] value["
+                            + trueValue
+                            + "] truepercent["
+                            + truepercent
+                            + "]"
+                            + (truepercent >= this.NEALYEQUALPERCENT ? ">=" : "<")
+                            + "NEALYEQUALPERCENT["
+                            + this.NEALYEQUALPERCENT
+                            + "]";
+                    LOGGER4J.debug(debugmess);
+                }
                 if (truepercent >= this.NEALYEQUALPERCENT) {
 
                     if (falseBodyOutputs == null) {
@@ -96,18 +112,50 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
                         if (falsemessage == null) continue;
                         falseBodyOutputs = getUnstrippedStrippedResponse(falsemessage, origParamValue, tfrpattern.falsepattern);
                     }
-                    // 1-2. original response is diffrent from false response.
                     falsepercent = comparator.compare(normalBodyOutputs[i], falseBodyOutputs[i], falseLCSs[i]);
+                    LOGGER4J.debug("origParamName["
+                            + origParamName
+                            + "] value["
+                            + falseValue
+                            + "] falsepercent["
+                            + falsepercent
+                            + "]"
+                            + (falsepercent < this.NEALYDIFFERPERCENT ? "<" : ">=")
+                            + "NEALYDIFFERPERCENT["
+                            + this.NEALYDIFFERPERCENT
+                            + "]");
+                    // 1-2. original response is diffrent from false response.
                     if (falsepercent < this.NEALYDIFFERPERCENT) {
                         // bingo.
-                        raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_MEDIUM, i > 0 ? true : false, truemessage,origParamName, trueValue, falseValue, null);
+                        LOGGER4J.debug("bingo 1-1.truepercent["
+                                + truepercent
+                                + "]>="
+                                + this.NEALYEQUALPERCENT
+                                + " 1-2.falsepercent["
+                                + falsepercent + "<" + this.NEALYDIFFERPERCENT);
+                        String evidence = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.trueequaloriginal.evidence");
+                        raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_MEDIUM, i > 0 ? true : false, truemessage,origParamName, trueValue, falseValue, null, evidence);
                         sqlInjectionFoundForUrl = true;
                         break LOOPTRUE;
                     }
                 }
                 // 2-1. LCS(Longest Common Sequence) of true and original  matched oririnal response.
                 //     that means true response contains original.
-                int truecontainoriginalpercent = comparator.compare(trueLCSs[i].getLCSString(), trueBodyOutputs[i], null);
+                int truecontainoriginalpercent = comparator.compare(trueLCSs[i].getLCSString(), normalBodyOutputs[i] , null);
+                LOGGER4J.debug("origParamName["
+                        + origParamName
+                        + "] value["
+                        + trueValue
+                        + "] truecontainoriginalpercent["
+                        + truecontainoriginalpercent
+                        + "]"
+                        + (truecontainoriginalpercent >= this.NEALYEQUALPERCENT ? ">=" : "<")
+                        + "NEALYEQUALPERCENT["
+                        + this.NEALYEQUALPERCENT
+                        + "]"
+                        + " trueLCS.length="
+                        + (trueLCSs[i].getLCSString() == null ? "0(null)" : trueLCSs[i].getLCSString().length())
+                        + " normalBodyOutput.lenght=" +  (normalBodyOutputs[i] == null ? "0(null)" : normalBodyOutputs[i].length()));
                 if (truecontainoriginalpercent >= this.NEALYEQUALPERCENT) {
                     if (falseBodyOutputs == null) {
                         falseValue = origParamValue + tfrpattern.falsepattern;
@@ -120,10 +168,28 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
                     if (falsepercent == -1) {
                         falsepercent = comparator.compare(normalBodyOutputs[i], falseBodyOutputs[i], falseLCSs[i]);
                     }
+                    LOGGER4J.debug("origParamName["
+                            + origParamName
+                            + "] value["
+                            + falseValue
+                            + "] falsepercent["
+                            + falsepercent
+                            + "]"
+                            + (falsepercent < this.NEALYDIFFERPERCENT ? "<" : ">=")
+                            + "NEALYDIFFERPERCENT["
+                            + this.NEALYDIFFERPERCENT
+                            + "]");
                     // 2-2. original response is diffrent from false response.
                     if (falsepercent < this.NEALYDIFFERPERCENT) {
                         // bingo.
-                        raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_MEDIUM, i > 0 ? true : false, truemessage,origParamName, trueValue, falseValue, null);
+                        LOGGER4J.debug("bingo 2-1.truecontainoriginalpercent["
+                                + truecontainoriginalpercent
+                                + "]>="
+                                + this.NEALYEQUALPERCENT
+                                + "\n 2-2.falsepercent["
+                                + falsepercent + "<" + this.NEALYDIFFERPERCENT);
+                        String evidence = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.truecontainoriginal.evidence");
+                        raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_MEDIUM, i > 0 ? true : false, truemessage,origParamName, trueValue, falseValue, null,evidence);
                         sqlInjectionFoundForUrl = true;
                         break LOOPTRUE;
                     }
@@ -138,10 +204,35 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
 
                 LcsStringList truefalseLCS = new LcsStringList();
                 int truefalsepercent = comparator.compare(trueBodyOutputs[i], falseBodyOutputs[i], truefalseLCS);
-
+                LOGGER4J.debug("origParamName["
+                        + origParamName
+                        + "] values true["
+                        + trueValue
+                        + "]false["
+                        + falseValue
+                        + "] truefalsepercent["
+                        + truefalsepercent
+                        + "]"
+                        + (truefalsepercent < this.NEALYDIFFERPERCENT ? "<" : ">=")
+                        + "NEALYDIFFERPERCENT["
+                        + this.NEALYDIFFERPERCENT
+                        + "]");
                 // 3-1. LCS of true and false matched false
                 //    that means true response contains false response but has not same contents.
                 int truecontainsfalsepercent = comparator.compare(truefalseLCS.getLCSString(), falseBodyOutputs[i], null);
+                LOGGER4J.debug("origParamName["
+                        + origParamName
+                        + "] values true["
+                        + trueValue
+                        + "]false["
+                        + falseValue
+                        + "] truecontainsfalsepercent["
+                        + truecontainsfalsepercent
+                        + "]"
+                        + (truecontainsfalsepercent >= this.NEALYEQUALPERCENT ? ">=" : "<")
+                        + "NEALYEQUALPERCENT["
+                        + this.NEALYEQUALPERCENT
+                        + "]");
                 if (truecontainsfalsepercent >= this.NEALYEQUALPERCENT && truefalsepercent < this.NEALYDIFFERPERCENT) {
 
                     if (falsepercent == -1) {
@@ -155,8 +246,24 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
                             && falsepercent < this.NEALYDIFFERPERCENT
                             && trueBodyOutputs[i].length() > normalBodyOutputs[i].length()) {
                             //bingo
+                            LOGGER4J.debug("bingo 3-1. truecontainsfalsepercent["
+                                    + truecontainsfalsepercent + "]>="
+                                    + this.NEALYEQUALPERCENT
+                                    + " and truefalsepercent["
+                                    + truefalsepercent + "]<" + this.NEALYDIFFERPERCENT
+                                    + "\n 3-2.normalcontainsfalsepercent[" + normalcontainsfalsepercent
+                                    + "]>="
+                                    + this.NEALYEQUALPERCENT
+                                    + " and falsepercent["
+                                    + falsepercent
+                                    + "]<"
+                                    + this.NEALYDIFFERPERCENT
+                                    + " and trueBodyOutputs.length["
+                                    + trueBodyOutputs[i].length()
+                                    + "] > "
+                                    + "normalBodyOutputs.length[" + normalBodyOutputs[i].length() + "]");
                             String evidence = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.truecontainfalsebody.evidence");
-                            raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_MEDIUM, i > 0 ? true : false, truemessage,origParamName, trueValue, falseValue, evidence);
+                            raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_MEDIUM, i > 0 ? true : false, truemessage,origParamName, trueValue, falseValue, null, evidence);
                             sqlInjectionFoundForUrl = true;
                             break LOOPTRUE;
                     }
@@ -167,15 +274,27 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
                     if (truepercent >= this.NEALYEQUALPERCENT
                             && truefalsepercent >= this.NEALYEQUALPERCENT) {
                         String errorValue = origParamValue + tfrpattern.errorpattern;
-                        HttpMessage errormessage = sendRequestAndCalcLCS(comparator, origParamName, errorValue);
-                        if (errormessage == null) continue;
-                        errorBodyOutputs = getUnstrippedStrippedResponse(errormessage, origParamValue, tfrpattern.errorpattern);
+                        if (errorBodyOutputs == null) {
+                            errormessage = sendRequestAndCalcLCS(comparator, origParamName, errorValue);
+                            if (errormessage == null) continue;
+                            errorBodyOutputs = getUnstrippedStrippedResponse(errormessage, origParamValue, tfrpattern.errorpattern);
+                        }
 
                         int errorpercent = comparator.compare(normalBodyOutputs[i], errorBodyOutputs[i], errorLCSs[i]);
-                        if (errorpercent < this.NEALYDIFFERPERCENT) {
+                        // 4-2 false condition does not match error.
+                        if (errorpercent < this.NEALYDIFFERPERCENT && !bingoError) {
                             // bingo
-                            // String evidence = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.truecontainfalsebody.evidence");
-                            raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_LOW, i > 0 ? true : false, errormessage,origParamName, errorValue, falseValue, null);
+                            bingoError = true;
+                            LOGGER4J.debug("bingo 4-1. truepercent["
+                                    + truepercent + "]>="
+                                    + this.NEALYEQUALPERCENT
+                                    + " and truefalsepercent["
+                                    + truefalsepercent + "]>=" + this.NEALYEQUALPERCENT
+                                    + "\n 4-2.errorpercent[" + errorpercent
+                                    + "]<"
+                                    + this.NEALYDIFFERPERCENT);
+                            String evidence = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.founddberror.evidence");
+                            raiseAlertBooleanBased(Alert.RISK_HIGH, Alert.CONFIDENCE_LOW, i > 0 ? true : false, errormessage,origParamName, errorValue, falseValue, errorValue,evidence);
                         }
 
                     }
@@ -229,6 +348,16 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
             }
         }
         return false;
+    }
+
+    @Override
+    public int getCweId() {
+        return 89;
+    }
+
+    @Override
+    public int getWascId() {
+        return 19;
     }
 
     // int NealyEqualPercent = 950;// 95 %
@@ -391,7 +520,7 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
      * @param falseValue
      * @param evidence
      */
-    void raiseAlertBooleanBased(int risk, int confidence, boolean isStripped, HttpMessage message, String origParamName,  String trueValue, String falseValue, String evidence) {
+    void raiseAlertBooleanBased(int risk, int confidence, boolean isStripped, HttpMessage message, String origParamName,  String trueValue, String falseValue, String errorValue, String evidence) {
         String extraInfo = null; // extraInfo is displayed in the pane which titled "Other info:".
         if (isStripped) { // Stripped
             extraInfo = Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.extrainfo", trueValue, falseValue, "");
@@ -401,7 +530,7 @@ public class CustomSQLInjectionLogic extends AbstractAppParamPlugin {
         extraInfo = extraInfo + "\n" + Constant.messages.getString(MESSAGE_PREFIX + "alert.booleanbased.extrainfo.dataexists");
 
         //raise the alert, and save the attack string for the "Authentication Bypass" alert, if necessary
-        String sqlInjectionAttack = trueValue;
+        String sqlInjectionAttack = "true[" + trueValue +"]false[" + falseValue + "]" + (errorValue == null ? "" : "error[" + errorValue + "]");
         bingo(risk, confidence, getName(), getDescription(),
                 null, //url
                 origParamName, sqlInjectionAttack,

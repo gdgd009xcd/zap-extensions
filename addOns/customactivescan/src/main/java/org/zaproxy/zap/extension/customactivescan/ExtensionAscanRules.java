@@ -18,6 +18,8 @@
 
 package org.zaproxy.zap.extension.customactivescan;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.parosproxy.paros.Constant;
 import org.parosproxy.paros.control.Control.Mode;
 import org.parosproxy.paros.extension.ExtensionAdaptor;
@@ -25,12 +27,17 @@ import org.parosproxy.paros.extension.ExtensionHook;
 import org.parosproxy.paros.extension.SessionChangedListener;
 import org.parosproxy.paros.model.Session;
 
+import java.io.File;
+import java.net.URI;
+
 /**
  * A null extension just to cause the message bundle and help file to get loaded 
  * @author psiinon
  *
  */
 public class ExtensionAscanRules extends ExtensionAdaptor {
+
+	public static final String LOG4JXML_DIR = Constant.getZapHome();
 
 	@Override
 	public String getAuthor() {
@@ -56,6 +63,22 @@ public class ExtensionAscanRules extends ExtensionAdaptor {
 	@Override
 	public void hook(ExtensionHook hook) {
 		super.hook(hook);
+		File log4jdir =
+				new File(LOG4JXML_DIR); // LOG4JXML_DIR: $HOME/.ZAP or .BurpSuite
+		String fileName = "log4j2.xml";
+		File logFile = new File(log4jdir, fileName);
+		if (logFile.exists()) {
+			LoggerContext context = (LoggerContext) LogManager.getContext(false);
+			URI logURI = context.getConfigLocation();
+			if (logURI == null) {
+				context.setConfigLocation(logFile.toURI());
+				System.out.println("log4j: set:" + logFile.getPath());
+			} else {
+				System.out.println("log4j: get URI:" + logURI.toString());
+			}
+		} else {
+			System.out.println("log4j file not found.:" + logFile.getPath());
+		}
 
 		hook.addSessionListener(new SessionChangedListenerImpl());
 	}
