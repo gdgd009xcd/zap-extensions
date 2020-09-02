@@ -4,6 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * Edit graph cell for O(NP) comparison logic
+ *
+ * @author gdgd009xcd
+ *
+ */
 public class OnpV {
 	public int x =0;
 	

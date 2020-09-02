@@ -4,6 +4,14 @@ import org.apache.log4j.Logger;
 
 import java.util.List;
 
+/**
+ *  a bit faster O(NP) compare logic to calculate LCS (Longest Common Sequence)
+ *
+ * @param <T>
+ *
+ * @author gdgd009xcd
+ *
+ */
 public class LcsOnp<T> extends AbstractLcsComparator<T>{
 
     int M;
